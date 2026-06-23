@@ -16,10 +16,15 @@ app.use(express.json());
 
 // ── Clients ────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+let twilioClient = null;
+try {
+  twilioClient = twilio(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
+} catch (err) {
+  console.warn("⚠️ Twilio client not initialized (invalid/missing credentials) — skipping. This is expected if you've moved to Meta Cloud API.");
+}
 // — Meta WhatsApp Cloud API webhook ————————————————————
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
