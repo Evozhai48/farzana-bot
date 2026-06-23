@@ -20,7 +20,41 @@ const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
+// — Meta WhatsApp Cloud API webhook ————————————————————
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
+app.get("/webhook", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    console.log("Webhook verified ✅");
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+app.post("/webhook", (req, res) => {
+  const body = req.body;
+
+  if (body.object === "whatsapp_business_account") {
+    const messages = body.entry?.[0]?.changes?.[0]?.value?.messages;
+
+    if (messages) {
+      messages.forEach((message) => {
+        const from = message.from;
+        const text = message.text?.body;
+        console.log(`📩 From ${from}: ${text}`);
+        // TODO: wire this into the same Claude logic Twilio uses below
+      });
+    }
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(404);
+  }
+});
 // ── In-memory stores ───────────────────────────────────────
 // Conversation history per customer (resets after 2 hrs idle)
 const conversations = {};
