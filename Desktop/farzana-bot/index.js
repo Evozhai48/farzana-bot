@@ -60,6 +60,39 @@ app.post("/webhook", (req, res) => {
     res.sendStatus(404);
   }
 });
+// — Send a WhatsApp message via Meta Cloud API ————————————————————
+const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+const META_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+
+async function sendWhatsAppMeta(to, text) {
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${META_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to,
+          type: "text",
+          text: { body: text },
+        }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("❌ Meta send error:", JSON.stringify(data));
+    } else {
+      console.log(`✅ Sent to ${to}: ${text}`);
+    }
+    return data;
+  } catch (err) {
+    console.error("❌ Failed to send via Meta:", err.message);
+  }
+}
 // ── In-memory stores ───────────────────────────────────────
 // Conversation history per customer (resets after 2 hrs idle)
 const conversations = {};
