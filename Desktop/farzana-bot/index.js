@@ -41,25 +41,7 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-app.post("/webhook", (req, res) => {
-  const body = req.body;
 
-  if (body.object === "whatsapp_business_account") {
-    const messages = body.entry?.[0]?.changes?.[0]?.value?.messages;
-
-    if (messages) {
-      messages.forEach((message) => {
-        const from = message.from;
-        const text = message.text?.body;
-        console.log(`📩 From ${from}: ${text}`);
-        // TODO: wire this into the same Claude logic Twilio uses below
-      });
-    }
-    res.sendStatus(200);
-  } else {
-    res.sendStatus(404);
-  }
-});
 // — Send a WhatsApp message via Meta Cloud API ————————————————————
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const META_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
@@ -235,72 +217,91 @@ function scheduleFollowUp(customerNumber, orderSummary) {
       console.error("Follow-up failed:", err.message);
     }
   }, 30 * 60 * 1000); // 30 minutes
+
+
+}
+// — Shared Claude reply logic (used by both Twilio and Meta) ————————————
+async function generateReply(from, incomingMsg) {
+  const history = getHistory(from);
+  history.push({ role: "user", content: incomingMsg });
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1000,
+    system: SYSTEM_PROMPT,
+    messages: history,
+  });
+
+  let replyText = response.content
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("")
+    .trim();
+
+  history.push({ role: "assistant", content: replyText });
+
+  const orderMatch = replyText.match(/\[ORDER_CONFIRMED:\s*(.+?)\]/);
+  const complaintMatch = replyText.match(/\[COMPLAINT_FLAGGED:\s*(.+?)\]/);
+
+  if (orderMatch) {
+    const orderSummary = orderMatch[1].trim();
+    replyText = replyText.replace(orderMatch[0], "").trim();
+    await notifyOwner("ORDER", orderSummary, from);
+    scheduleFollowUp(from, orderSummary);
+  }
+
+  if (complaintMatch) {
+    const complaintDetail = complaintMatch[1].trim();
+    replyText = replyText.replace(complaintMatch[0], "").trim();
+    await notifyOwner("COMPLAINT", complaintDetail, from);
+  }
+
+  return replyText;
 }
 
-// ── Main webhook endpoint ──────────────────────────────────
+// — Main webhook endpoint (handles both Meta and legacy Twilio formats) —
 app.post("/webhook", async (req, res) => {
-  // Acknowledge Twilio immediately (prevents retry)
-  res.status(200).send("<Response></Response>");
+  const body = req.body;
 
+  // --- Meta WhatsApp Cloud API format ---
+  if (body.object === "whatsapp_business_account") {
+    res.sendStatus(200);
+    const messages = body.entry?.[0]?.changes?.[0]?.value?.messages;
+    if (!messages) return;
+
+    for (const message of messages) {
+      const from = message.from;
+      const incomingMsg = message.text?.body;
+      if (!from || !incomingMsg) continue;
+
+      console.log(`[IN-META] ${from}: ${incomingMsg}`);
+      try {
+        const replyText = await generateReply(from, incomingMsg);
+        await sendWhatsAppMeta(from, replyText);
+      } catch (err) {
+        console.error("Error handling Meta message:", err.message);
+        await sendWhatsAppMeta(from, "Maaf, ada gangguan sekejap. Cuba lagi atau call kami di 017-316 2057 😊");
+      }
+    }
+    return;
+  }
+
+  // --- Legacy Twilio format ---
+  res.status(200).send("<Response></Response>");
   const incomingMsg = (req.body.Body || "").trim();
   const from = (req.body.From || "").replace("whatsapp:", "");
-
   if (!incomingMsg || !from) return;
 
-  console.log(`[IN]  ${from}: ${incomingMsg}`);
-
+  console.log(`[IN-TWILIO] ${from}: ${incomingMsg}`);
   try {
-    const history = getHistory(from);
-
-    // Add user message to history
-    history.push({ role: "user", content: incomingMsg });
-
-    // Call Claude
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      system: SYSTEM_PROMPT,
-      messages: history,
-    });
-
-    let replyText = response.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
-
-    // Add assistant reply to history
-    history.push({ role: "assistant", content: replyText });
-
-    // ── Parse special tags ────────────────────────────────
-    const orderMatch = replyText.match(/\[ORDER_CONFIRMED:\s*(.+?)\]/);
-    const complaintMatch = replyText.match(/\[COMPLAINT_FLAGGED:\s*(.+?)\]/);
-
-    if (orderMatch) {
-      const orderSummary = orderMatch[1].trim();
-      replyText = replyText.replace(orderMatch[0], "").trim();
-      await notifyOwner("ORDER", orderSummary, from);
-      scheduleFollowUp(from, orderSummary);
-    }
-
-    if (complaintMatch) {
-      const complaintDetail = complaintMatch[1].trim();
-      replyText = replyText.replace(complaintMatch[0], "").trim();
-      await notifyOwner("COMPLAINT", complaintDetail, from);
-    }
-
-    // ── Send reply to customer ────────────────────────────
-    console.log(`[OUT] ${from}: ${replyText}`);
+    const replyText = await generateReply(from, incomingMsg);
     await sendWhatsApp(from, replyText);
-
   } catch (err) {
     console.error("Error:", err.message);
-    await sendWhatsApp(
-      from,
-      "Maaf, ada gangguan sekejap. Cuba lagi atau call kami di 017-316 2057 😊"
-    );
+    await sendWhatsApp(from, "Maaf, ada gangguan sekejap. Cuba lagi atau call kami di 017-316 2057 😊");
   }
 });
+
 
 // ── Health check ───────────────────────────────────────────
 app.get("/", (req, res) => res.send("Farzana Corner bot is running ✅"));
