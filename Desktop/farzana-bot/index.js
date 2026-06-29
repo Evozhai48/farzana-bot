@@ -1,6 +1,7 @@
 // ============================================================
-//  Farzana Corner WhatsApp Chatbot
-//  Twilio WhatsApp  →  Claude API  →  Auto-reply
+//  BotRental MY — Multi-Tenant WhatsApp Chatbot
+//  Meta WhatsApp Cloud API  →  Claude API  →  Auto-reply
+//  One deployment, swappable restaurant data via DEMO_RESTAURANT_ID
 // ============================================================
 
 import express from "express";
@@ -25,6 +26,7 @@ try {
 } catch (err) {
   console.warn("⚠️ Twilio client not initialized (invalid/missing credentials) — skipping. This is expected if you've moved to Meta Cloud API.");
 }
+
 // — Meta WhatsApp Cloud API webhook ————————————————————
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 
@@ -40,7 +42,6 @@ app.get("/webhook", (req, res) => {
     res.sendStatus(403);
   }
 });
-
 
 // — Send a WhatsApp message via Meta Cloud API ————————————————————
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -75,25 +76,32 @@ async function sendWhatsAppMeta(to, text) {
     console.error("❌ Failed to send via Meta:", err.message);
   }
 }
+
 // ── In-memory stores ───────────────────────────────────────
 // Conversation history per customer (resets after 2 hrs idle)
 const conversations = {};
 // Orders pending follow-up { customerNumber: { orderedAt, items } }
 const pendingFollowUps = {};
 
-// ── System prompt ──────────────────────────────────────────
-const SYSTEM_PROMPT = `
-You are Hana, the friendly WhatsApp assistant for Farzana Corner restaurant in Petaling Jaya, Selangor.
-
-RESTAURANT INFO:
-- Name: Farzana Corner
-- Address: 927, Jalan Mawar, Kampung Sungai Kayu Ara, 47400 Petaling Jaya, Selangor
-- Phone: 017-316 2057
-- Hours: Open 24 hours, 7 days a week
-- Price range: RM 1 – RM 20 per person
-- Services: Dine-in, Takeaway, Delivery (Grab & Foodpanda)
-
-MENU:
+// ============================================================
+//  RESTAURANT CONFIGS — multi-tenant demo data
+//
+//  Add a new entry here for each prospect before a live demo.
+//  Then set Railway env var  DEMO_RESTAURANT_ID=<key>  to switch
+//  which restaurant the bot represents. No code changes needed
+//  after this file is set up — just edit this object + redeploy,
+//  or maintain a few pre-built entries and flip the env var.
+// ============================================================
+const RESTAURANTS = {
+  farzana: {
+    name: "Farzana Corner",
+    assistantName: "Hana",
+    address: "927, Jalan Mawar, Kampung Sungai Kayu Ara, 47400 Petaling Jaya, Selangor",
+    phone: "017-316 2057",
+    hours: "Open 24 hours, 7 days a week",
+    priceRange: "RM 1 – RM 20 per person",
+    services: "Dine-in, Takeaway, Delivery (Grab & Foodpanda)",
+    menu: `
 Breakfast / All Day:
 - Roti Canai – RM 1.50
 - Roti Telur – RM 2.50
@@ -115,6 +123,67 @@ Mains:
 Satay (min 10 sticks):
 - Sate Ayam – RM 0.80/stick
 - Sate Daging – RM 1.00/stick
+    `.trim(),
+  },
+
+  // Generic placeholder — use this for a cold demo when you haven't
+  // sourced the prospect's actual menu yet. Edit the bracketed fields
+  // live during the call if needed, or swap in a dedicated key instead.
+  generic: {
+    name: "[Restaurant Name]",
+    assistantName: "Hana",
+    address: "[Address]",
+    phone: "[Phone Number]",
+    hours: "[Operating Hours]",
+    priceRange: "[Price Range]",
+    services: "Dine-in, Takeaway, Delivery",
+    menu: `
+[Paste the prospect's actual menu here before the demo — sourced
+from their Google Maps listing, GrabFood page, or photos taken
+during the sales call. Keep the same "- Item – RM X.XX" format
+so pricing parses consistently for the AI.]
+    `.trim(),
+  },
+
+  // ── Add new prospects below this line ──────────────────────
+  // dyamu_tomyam: {
+  //   name: "Dyamu Tomyam 4",
+  //   assistantName: "Hana",
+  //   address: "...",
+  //   phone: "...",
+  //   hours: "...",
+  //   priceRange: "...",
+  //   services: "Dine-in, Takeaway, Delivery (Grab)",
+  //   menu: `
+  // - Tomyam Ayam – RM X
+  // ...
+  //   `.trim(),
+  // },
+};
+
+const DEMO_ID = process.env.DEMO_RESTAURANT_ID || "farzana";
+const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.farzana;
+
+if (!RESTAURANTS[DEMO_ID]) {
+  console.warn(`⚠️ DEMO_RESTAURANT_ID="${DEMO_ID}" not found in RESTAURANTS — falling back to "farzana".`);
+}
+console.log(`🏪 Bot is representing: ${RESTAURANT.name} (key: ${DEMO_ID})`);
+
+// ── System prompt builder ───────────────────────────────────
+function buildSystemPrompt(r) {
+  return `
+You are ${r.assistantName}, the friendly WhatsApp assistant for ${r.name} restaurant.
+
+RESTAURANT INFO:
+- Name: ${r.name}
+- Address: ${r.address}
+- Phone: ${r.phone}
+- Hours: ${r.hours}
+- Price range: ${r.priceRange}
+- Services: ${r.services}
+
+MENU:
+${r.menu}
 
 LANGUAGE:
 - Reply in the same language the customer uses
@@ -143,11 +212,14 @@ COMPLAINTS:
   - Example: [COMPLAINT_FLAGGED: Customer received spicy food despite requesting tak pedas]
 
 THINGS YOU DON'T KNOW:
-- Real-time wait times — say "Boleh call kami di 017-316 2057 untuk tanya terus 😊"
+- Real-time wait times — say "Boleh call kami di ${r.phone} untuk tanya terus 😊"
 - Stock availability — same, redirect to call
 
-Stay helpful, honest, and warm. You represent Farzana Corner.
+Stay helpful, honest, and warm. You represent ${r.name}.
 `.trim();
+}
+
+const SYSTEM_PROMPT = buildSystemPrompt(RESTAURANT);
 
 // ── Conversation helper ────────────────────────────────────
 function getHistory(from) {
@@ -206,7 +278,7 @@ function scheduleFollowUp(customerNumber, orderSummary) {
     delete pendingFollowUps[customerNumber];
 
     const followUpMsg =
-      `Hi! Makanan dari Farzana Corner tadi okay tak? 😊\n\n` +
+      `Hi! Makanan dari ${RESTAURANT.name} tadi okay tak? 😊\n\n` +
       `Kami harap semua sedap dan mengikut pesanan korang. ` +
       `Kalau ada apa-apa yang tak kena, bagitahu kami ye — ` +
       `kami nak pastikan korang puas hati! 🙏`;
@@ -217,16 +289,15 @@ function scheduleFollowUp(customerNumber, orderSummary) {
       console.error("Follow-up failed:", err.message);
     }
   }, 30 * 60 * 1000); // 30 minutes
-
-
 }
+
 // — Shared Claude reply logic (used by both Twilio and Meta) ————————————
 async function generateReply(from, incomingMsg) {
   const history = getHistory(from);
   history.push({ role: "user", content: incomingMsg });
 
   const response = await anthropic.messages.create({
-   model: "claude-sonnet-4-6",
+    model: "claude-sonnet-4-6",
     max_tokens: 1000,
     system: SYSTEM_PROMPT,
     messages: history,
@@ -280,7 +351,7 @@ app.post("/webhook", async (req, res) => {
         await sendWhatsAppMeta(from, replyText);
       } catch (err) {
         console.error("Error handling Meta message:", err.message);
-        await sendWhatsAppMeta(from, "Maaf, ada gangguan sekejap. Cuba lagi atau call kami di 017-316 2057 😊");
+        await sendWhatsAppMeta(from, `Maaf, ada gangguan sekejap. Cuba lagi atau call kami di ${RESTAURANT.phone} 😊`);
       }
     }
     return;
@@ -298,13 +369,12 @@ app.post("/webhook", async (req, res) => {
     await sendWhatsApp(from, replyText);
   } catch (err) {
     console.error("Error:", err.message);
-    await sendWhatsApp(from, "Maaf, ada gangguan sekejap. Cuba lagi atau call kami di 017-316 2057 😊");
+    await sendWhatsApp(from, `Maaf, ada gangguan sekejap. Cuba lagi atau call kami di ${RESTAURANT.phone} 😊`);
   }
 });
 
-
 // ── Health check ───────────────────────────────────────────
-app.get("/", (req, res) => res.send("Farzana Corner bot is running ✅"));
+app.get("/", (req, res) => res.send(`${RESTAURANT.name} bot is running ✅`));
 
 // ── Start server ───────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
