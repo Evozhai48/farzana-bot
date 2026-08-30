@@ -1,0 +1,29 @@
+name: farzana-bot
+services:
+  - name: web
+    github:
+      repo: Evozhai48/farzana-bot
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    build_command: npm install
+    run_command: node index.js
+    environment_slug: node-js
+    http_port: 8080
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    envs:
+      - key: ANTHROPIC_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: DEMO_RESTAURANT_ID
+        scope: RUN_TIME
+      - key: OWNER_WHATSAPP_NUMBER
+        scope: RUN_TIME
+      - key: WHATSAPP_ACCESS_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        scope: RUN_TIME
+      - key: WHATSAPP_VERIFY_TOKEN
+        scope: RUN_TIME
