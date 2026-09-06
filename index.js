@@ -246,7 +246,7 @@ async function sendWhatsApp(to, body) {
   });
 }
 
-// ── Notify owner ───────────────────────────────────────────
+// ── Notify owner (uses Meta API — Twilio path is deprecated) ────
 async function notifyOwner(type, detail, customerNumber) {
   const ownerNumber = process.env.OWNER_WHATSAPP_NUMBER;
   if (!ownerNumber) return;
@@ -266,7 +266,42 @@ async function notifyOwner(type, detail, customerNumber) {
       `Sila follow up segera!`;
   }
 
-  await sendWhatsApp(ownerNumber, msg);
+  try {
+    // NOTE: previously used the Twilio-based sendWhatsApp(), which throws
+    // because Twilio credentials are no longer valid post Meta-migration.
+    // That uncaught error was bubbling up and causing the CUSTOMER to see
+    // a fallback "ada gangguan" message instead of their real order
+    // confirmation. Switched to the working Meta sender + wrapped in
+    // try/catch so a notify failure can never break the customer reply.
+    await sendWhatsAppMeta(ownerNumber, msg);
+  } catch (err) {
+    console.error("❌ Failed to notify owner:", err.message);
+  }
+}
+
+// ── Log order to Google Sheet via Zapier webhook ────────────
+const ZAPIER_ORDER_WEBHOOK_URL = process.env.ZAPIER_ORDER_WEBHOOK_URL;
+
+async function logOrderToSheet(orderSummary, customerNumber) {
+  if (!ZAPIER_ORDER_WEBHOOK_URL) {
+    console.warn("⚠️ ZAPIER_ORDER_WEBHOOK_URL not set — skipping sheet log.");
+    return;
+  }
+  try {
+    await fetch(ZAPIER_ORDER_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        timestamp: new Date().toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" }),
+        restaurant: RESTAURANT.name,
+        customer_phone: customerNumber,
+        order_summary: orderSummary,
+        status: "New",
+      }),
+    });
+  } catch (err) {
+    console.error("❌ Failed to log order to sheet:", err.message);
+  }
 }
 
 // ── Schedule follow-up after 30 minutes ───────────────────
@@ -318,6 +353,7 @@ async function generateReply(from, incomingMsg) {
     const orderSummary = orderMatch[1].trim();
     replyText = replyText.replace(orderMatch[0], "").trim();
     await notifyOwner("ORDER", orderSummary, from);
+    await logOrderToSheet(orderSummary, from);
     scheduleFollowUp(from, orderSummary);
   }
 
