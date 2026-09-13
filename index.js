@@ -107,46 +107,103 @@ const RESTAURANTS = {
     priceRange: "RM 1 – RM 20 per person",
     services: "Dine-in, Takeaway, Delivery (Grab & Foodpanda)",
     menu: `
-Breakfast / All Day:
+Roti & Breakfast:
 - Roti Canai – RM 1.50
 - Roti Telur – RM 2.50
+- Roti Bawang – RM 2.00
+- Roti Pisang – RM 2.50
+- Roti Sardin – RM 3.00
+- Roti Tissue – RM 4.50
+- Roti John – RM 6.00
+- Murtabak Daging – RM 7.00
+- Murtabak Ayam – RM 6.50
 - Nasi Lemak (Basic) – RM 3.00
 - Nasi Lemak Special (with fried chicken) – RM 7.00
 - Mihun Sup – RM 5.00
-- Teh Tarik – RM 2.00
-- Milo Ais – RM 2.50
-- Kopi O – RM 1.50
 
-Mains:
+Nasi:
+- Nasi Kandar Ayam – RM 8.00
+- Nasi Kandar Daging – RM 9.50
+- Nasi Kandar Campur (2 lauk) – RM 9.00
 - Nasi Goreng Ayam – RM 7.00
 - Nasi Goreng Kampung – RM 8.00
+- Nasi Goreng Seafood – RM 9.50
+- Nasi Briyani Ayam – RM 9.00
+- Nasi Briyani Daging – RM 10.00
+- Nasi Putih + Lauk (pilih 2) – RM 7.50
+
+Mee & Mihun:
 - Mee Goreng – RM 7.00
 - Mihun Goreng – RM 7.00
+- Maggi Goreng – RM 7.50
+- Mee Rebus – RM 6.50
+- Mee Bandung – RM 7.00
+- Kuey Teow Goreng – RM 7.50
+
+Sup & Side Dishes:
 - Sup Ekor – RM 12.00
 - Sup Tulang – RM 10.00
+- Sup Kambing – RM 13.00
+- Ayam Goreng (1 piece) – RM 4.00
+- Telur Mata – RM 1.50
+- Sayur Campur – RM 3.00
+- Ikan Goreng – RM 5.00
 
 Satay (min 10 sticks):
 - Sate Ayam – RM 0.80/stick
 - Sate Daging – RM 1.00/stick
+
+Western (Light):
+- Chicken Chop – RM 12.00
+- Fish & Chips – RM 13.00
+
+Minuman:
+- Teh Tarik – RM 2.00
+- Teh O – RM 1.50
+- Teh C – RM 2.20
+- Teh C Peng – RM 2.50
+- Kopi O – RM 1.50
+- Kopi Susu – RM 1.80
+- Milo Ais – RM 2.50
+- Milo Tarik – RM 2.80
+- Air Sirap – RM 1.50
+- Ice Lemon Tea – RM 2.50
+- Sirap Bandung – RM 1.80
+- Mineral Water – RM 1.50
     `.trim(),
   },
 
-  // Generic placeholder — use this for a cold demo when you haven't
-  // sourced the prospect's actual menu yet. Edit the bracketed fields
-  // live during the call if needed, or swap in a dedicated key instead.
+  // Generic placeholder — a normal, ordinary Malaysian kedai makan.
+  // Swap in the prospect's real name/address/menu before a live demo,
+  // or add a dedicated key per prospect instead.
   generic: {
-    name: "[Restaurant Name]",
+    name: "Restoran Sri Melur",
     assistantName: "Hana",
-    address: "[Address]",
-    phone: "[Phone Number]",
-    hours: "[Operating Hours]",
-    priceRange: "[Price Range]",
-    services: "Dine-in, Takeaway, Delivery",
+    address: "12, Jalan SS15/4D, 47500 Subang Jaya, Selangor",
+    phone: "012-345 6789",
+    hours: "8:00 AM – 10:00 PM, Isnin – Ahad",
+    priceRange: "RM 5 – RM 15 per person",
+    services: "Dine-in, Takeaway, Delivery (Grab & Foodpanda)",
     menu: `
-[Paste the prospect's actual menu here before the demo — sourced
-from their Google Maps listing, GrabFood page, or photos taken
-during the sales call. Keep the same "- Item – RM X.XX" format
-so pricing parses consistently for the AI.]
+Nasi & Mains:
+- Nasi Campur (pilih 2 lauk) – RM 8.00
+- Nasi Ayam Goreng – RM 7.50
+- Nasi Goreng Kampung – RM 7.00
+- Mee Goreng Mamak – RM 6.50
+- Mee Hoon Sup – RM 6.00
+- Ayam Penyet – RM 9.00
+- Sayur Campur – RM 3.00
+
+Minuman:
+- Teh Ais / Teh Panas – RM 2.00
+- Milo Ais – RM 2.50
+- Kopi O / Kopi Susu – RM 1.80
+- Air Sirap – RM 1.50
+- Mineral Water – RM 1.50
+
+Extra:
+- Telur Mata – RM 1.50
+- Ikan Goreng – RM 4.00
     `.trim(),
   },
 
