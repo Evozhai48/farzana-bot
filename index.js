@@ -87,10 +87,15 @@ const pendingFollowUps = {};
 //  RESTAURANT CONFIGS — multi-tenant demo data
 //
 //  Add a new entry here for each prospect before a live demo.
-//  Then set Railway env var  DEMO_RESTAURANT_ID=<key>  to switch
+//  Then set DEMO_RESTAURANT_ID=<key> (DigitalOcean env var) to switch
 //  which restaurant the bot represents. No code changes needed
 //  after this file is set up — just edit this object + redeploy,
 //  or maintain a few pre-built entries and flip the env var.
+//
+//  Default is now "generic" (blank template) instead of "farzana" —
+//  fill in the bracketed fields live during a call, or add a new
+//  named key per prospect. "farzana" is kept below as a saved
+//  reference config, not the active default.
 // ============================================================
 const RESTAURANTS = {
   farzana: {
@@ -161,11 +166,11 @@ so pricing parses consistently for the AI.]
   // },
 };
 
-const DEMO_ID = process.env.DEMO_RESTAURANT_ID || "farzana";
-const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.farzana;
+const DEMO_ID = process.env.DEMO_RESTAURANT_ID || "generic";
+const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.generic;
 
 if (!RESTAURANTS[DEMO_ID]) {
-  console.warn(`⚠️ DEMO_RESTAURANT_ID="${DEMO_ID}" not found in RESTAURANTS — falling back to "farzana".`);
+  console.warn(`⚠️ DEMO_RESTAURANT_ID="${DEMO_ID}" not found in RESTAURANTS — falling back to "generic".`);
 }
 console.log(`🏪 Bot is representing: ${RESTAURANT.name} (key: ${DEMO_ID})`);
 

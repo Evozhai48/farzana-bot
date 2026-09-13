@@ -1,7 +1,7 @@
 {
   "name": "farzana-bot",
   "version": "1.0.0",
-  "description": "WhatsApp AI chatbot for Farzana Corner restaurant",
+  "description": "BotRental MY — multi-tenant WhatsApp AI chatbot for F&B restaurants",
   "main": "index.js",
   "type": "module",
   "scripts": {
