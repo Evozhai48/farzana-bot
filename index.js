@@ -1,7 +1,20 @@
 // ============================================================
 //  BotRental MY — Multi-Tenant WhatsApp Chatbot
 //  Meta WhatsApp Cloud API  →  Claude API  →  Auto-reply
-//  One deployment, swappable restaurant data via DEMO_RESTAURANT_ID
+//
+//  TRUE MULTI-TENANCY: one deployment can now serve many paying
+//  clients at once. Each incoming message tells us which Meta
+//  phone_number_id it arrived on; we look that ID up in RESTAURANTS
+//  and reply as that specific client. Add a `phoneNumberId` (and
+//  optionally `ownerWhatsapp`) to a restaurant's config once their
+//  own WhatsApp number is registered in Meta Business Manager —
+//  no other code changes or redeploys needed to onboard them.
+//
+//  DEMO_RESTAURANT_ID is kept as a fallback: if an incoming
+//  phone_number_id doesn't match any configured client (e.g. the
+//  shared demo number, or a client not yet given their own number),
+//  the bot falls back to whichever restaurant DEMO_RESTAURANT_ID
+//  points to. This preserves the old single-tenant demo behavior.
 // ============================================================
 
 import express from "express";
@@ -47,10 +60,10 @@ app.get("/webhook", (req, res) => {
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const META_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 
-async function sendWhatsAppMeta(to, text) {
+async function sendWhatsAppMeta(to, text, phoneNumberId = PHONE_NUMBER_ID) {
   try {
     const res = await fetch(
-      `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
+      `https://graph.facebook.com/v25.0/${phoneNumberId}/messages`,
       {
         method: "POST",
         headers: {
@@ -87,20 +100,29 @@ const pendingFollowUps = {};
 //  RESTAURANT CONFIGS — multi-tenant demo data
 //
 //  Add a new entry here for each prospect before a live demo.
-//  Then set DEMO_RESTAURANT_ID=<key> (DigitalOcean env var) to switch
-//  which restaurant the bot represents. No code changes needed
-//  after this file is set up — just edit this object + redeploy,
-//  or maintain a few pre-built entries and flip the env var.
 //
-//  Default is now "generic" (blank template) instead of "farzana" —
-//  fill in the bracketed fields live during a call, or add a new
-//  named key per prospect. "farzana" is kept below as a saved
-//  reference config, not the active default.
+//  DEMO / TRIAL clients (no dedicated WhatsApp number yet):
+//  leave `phoneNumberId` unset. Set DEMO_RESTAURANT_ID=<key>
+//  (DigitalOcean env var) to make them the fallback restaurant.
+//
+//  LIVE PAYING clients (own number registered in Meta Business
+//  Manager): add `phoneNumberId: "<their Meta phone_number_id>"`
+//  and, optionally, `ownerWhatsapp: "<owner's WhatsApp number>"`.
+//  The bot will then route their customers' messages to this
+//  config automatically — no env var change, no redeploy, no new
+//  $5/month server. Just add the entry and it's live.
+//
+//  Default fallback is "generic" (blank template) instead of
+//  "farzana" — fill in the bracketed fields live during a call,
+//  or add a new named key per prospect. "farzana" is kept below
+//  as a saved reference config, not the active default.
 // ============================================================
 const RESTAURANTS = {
   farzana: {
     name: "Farzana Corner",
     assistantName: "Hana",
+    // phoneNumberId: "<Meta phone_number_id once they go live>",
+    // ownerWhatsapp: "<owner's WhatsApp number for order/complaint alerts>",
     address: "927, Jalan Mawar, Kampung Sungai Kayu Ara, 47400 Petaling Jaya, Selangor",
     phone: "017-316 2057",
     hours: "Open 24 hours, 7 days a week",
@@ -229,7 +251,29 @@ const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.generic;
 if (!RESTAURANTS[DEMO_ID]) {
   console.warn(`⚠️ DEMO_RESTAURANT_ID="${DEMO_ID}" not found in RESTAURANTS — falling back to "generic".`);
 }
-console.log(`🏪 Bot is representing: ${RESTAURANT.name} (key: ${DEMO_ID})`);
+console.log(`🏪 Fallback/demo restaurant: ${RESTAURANT.name} (key: ${DEMO_ID})`);
+
+// ── Multi-tenant routing: which restaurant does this number belong to? ──
+// Build once at startup: Meta phone_number_id -> restaurant config,
+// for every client who has been given their own WhatsApp number.
+const PHONE_ID_TO_RESTAURANT = {};
+for (const r of Object.values(RESTAURANTS)) {
+  if (r.phoneNumberId) PHONE_ID_TO_RESTAURANT[r.phoneNumberId] = r;
+}
+const liveClientCount = Object.keys(PHONE_ID_TO_RESTAURANT).length;
+console.log(
+  liveClientCount > 0
+    ? `📡 Routing ${liveClientCount} live client number(s) by phone_number_id.`
+    : `📡 No live client numbers configured yet — every message uses the fallback restaurant above.`
+);
+
+function getRestaurantForIncoming(incomingPhoneNumberId) {
+  if (incomingPhoneNumberId && PHONE_ID_TO_RESTAURANT[incomingPhoneNumberId]) {
+    return PHONE_ID_TO_RESTAURANT[incomingPhoneNumberId];
+  }
+  // No match (demo number, or a client not yet given a dedicated number) — use fallback.
+  return RESTAURANT;
+}
 
 // ── System prompt builder ───────────────────────────────────
 function buildSystemPrompt(r) {
@@ -281,7 +325,13 @@ Stay helpful, honest, and warm. You represent ${r.name}.
 `.trim();
 }
 
-const SYSTEM_PROMPT = buildSystemPrompt(RESTAURANT);
+// Cache the built system prompt per restaurant (keyed by object identity)
+// so we're not rebuilding the same long string on every incoming message.
+const systemPromptCache = new Map();
+function getSystemPrompt(r) {
+  if (!systemPromptCache.has(r)) systemPromptCache.set(r, buildSystemPrompt(r));
+  return systemPromptCache.get(r);
+}
 
 // ── Conversation helper ────────────────────────────────────
 function getHistory(from) {
@@ -309,8 +359,8 @@ async function sendWhatsApp(to, body) {
 }
 
 // ── Notify owner (uses Meta API — Twilio path is deprecated) ────
-async function notifyOwner(type, detail, customerNumber) {
-  const ownerNumber = process.env.OWNER_WHATSAPP_NUMBER;
+async function notifyOwner(type, detail, customerNumber, restaurant) {
+  const ownerNumber = restaurant.ownerWhatsapp || process.env.OWNER_WHATSAPP_NUMBER;
   if (!ownerNumber) return;
 
   let msg = "";
@@ -335,7 +385,7 @@ async function notifyOwner(type, detail, customerNumber) {
     // a fallback "ada gangguan" message instead of their real order
     // confirmation. Switched to the working Meta sender + wrapped in
     // try/catch so a notify failure can never break the customer reply.
-    await sendWhatsAppMeta(ownerNumber, msg);
+    await sendWhatsAppMeta(ownerNumber, msg, restaurant.phoneNumberId || PHONE_NUMBER_ID);
   } catch (err) {
     console.error("❌ Failed to notify owner:", err.message);
   }
@@ -344,7 +394,7 @@ async function notifyOwner(type, detail, customerNumber) {
 // ── Log order to Google Sheet via Zapier webhook ────────────
 const ZAPIER_ORDER_WEBHOOK_URL = process.env.ZAPIER_ORDER_WEBHOOK_URL;
 
-async function logOrderToSheet(orderSummary, customerNumber) {
+async function logOrderToSheet(orderSummary, customerNumber, restaurant) {
   if (!ZAPIER_ORDER_WEBHOOK_URL) {
     console.warn("⚠️ ZAPIER_ORDER_WEBHOOK_URL not set — skipping sheet log.");
     return;
@@ -355,7 +405,7 @@ async function logOrderToSheet(orderSummary, customerNumber) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         timestamp: new Date().toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" }),
-        restaurant: RESTAURANT.name,
+        restaurant: restaurant.name,
         customer_phone: customerNumber,
         order_summary: orderSummary,
         status: "New",
@@ -367,7 +417,7 @@ async function logOrderToSheet(orderSummary, customerNumber) {
 }
 
 // ── Schedule follow-up after 30 minutes ───────────────────
-function scheduleFollowUp(customerNumber, orderSummary) {
+function scheduleFollowUp(customerNumber, orderSummary, restaurant) {
   pendingFollowUps[customerNumber] = { orderedAt: Date.now(), items: orderSummary };
 
   setTimeout(async () => {
@@ -375,13 +425,18 @@ function scheduleFollowUp(customerNumber, orderSummary) {
     delete pendingFollowUps[customerNumber];
 
     const followUpMsg =
-      `Hi! Makanan dari ${RESTAURANT.name} tadi okay tak? 😊\n\n` +
+      `Hi! Makanan dari ${restaurant.name} tadi okay tak? 😊\n\n` +
       `Kami harap semua sedap dan mengikut pesanan korang. ` +
       `Kalau ada apa-apa yang tak kena, bagitahu kami ye — ` +
       `kami nak pastikan korang puas hati! 🙏`;
 
     try {
-      await sendWhatsApp(customerNumber, followUpMsg);
+      // NOTE: this used to call the old Twilio-based sendWhatsApp(), which
+      // throws because Twilio credentials are no longer valid post-Meta
+      // migration — the same bug already fixed in notifyOwner(). Switched
+      // to the working Meta sender, from this restaurant's own number
+      // when it has one.
+      await sendWhatsAppMeta(customerNumber, followUpMsg, restaurant.phoneNumberId || PHONE_NUMBER_ID);
     } catch (err) {
       console.error("Follow-up failed:", err.message);
     }
@@ -389,14 +444,14 @@ function scheduleFollowUp(customerNumber, orderSummary) {
 }
 
 // — Shared Claude reply logic (used by both Twilio and Meta) ————————————
-async function generateReply(from, incomingMsg) {
+async function generateReply(from, incomingMsg, restaurant) {
   const history = getHistory(from);
   history.push({ role: "user", content: incomingMsg });
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 1000,
-    system: SYSTEM_PROMPT,
+    system: getSystemPrompt(restaurant),
     messages: history,
   });
 
@@ -414,15 +469,15 @@ async function generateReply(from, incomingMsg) {
   if (orderMatch) {
     const orderSummary = orderMatch[1].trim();
     replyText = replyText.replace(orderMatch[0], "").trim();
-    await notifyOwner("ORDER", orderSummary, from);
-    await logOrderToSheet(orderSummary, from);
-    scheduleFollowUp(from, orderSummary);
+    await notifyOwner("ORDER", orderSummary, from, restaurant);
+    await logOrderToSheet(orderSummary, from, restaurant);
+    scheduleFollowUp(from, orderSummary, restaurant);
   }
 
   if (complaintMatch) {
     const complaintDetail = complaintMatch[1].trim();
     replyText = replyText.replace(complaintMatch[0], "").trim();
-    await notifyOwner("COMPLAINT", complaintDetail, from);
+    await notifyOwner("COMPLAINT", complaintDetail, from, restaurant);
   }
 
   return replyText;
@@ -435,27 +490,41 @@ app.post("/webhook", async (req, res) => {
   // --- Meta WhatsApp Cloud API format ---
   if (body.object === "whatsapp_business_account") {
     res.sendStatus(200);
-    const messages = body.entry?.[0]?.changes?.[0]?.value?.messages;
+    const value = body.entry?.[0]?.changes?.[0]?.value;
+    const messages = value?.messages;
     if (!messages) return;
+
+    // This is the multi-tenant routing step: Meta tells us which of our
+    // registered numbers this message arrived on. We use that to pick
+    // the matching client — every reply, notification, order log, and
+    // follow-up for this message uses THIS restaurant, not the global one.
+    const incomingPhoneNumberId = value?.metadata?.phone_number_id;
+    const restaurant = getRestaurantForIncoming(incomingPhoneNumberId);
 
     for (const message of messages) {
       const from = message.from;
       const incomingMsg = message.text?.body;
       if (!from || !incomingMsg) continue;
 
-      console.log(`[IN-META] ${from}: ${incomingMsg}`);
+      console.log(`[IN-META] (${restaurant.name}) ${from}: ${incomingMsg}`);
       try {
-        const replyText = await generateReply(from, incomingMsg);
-        await sendWhatsAppMeta(from, replyText);
+        const replyText = await generateReply(from, incomingMsg, restaurant);
+        await sendWhatsAppMeta(from, replyText, incomingPhoneNumberId || PHONE_NUMBER_ID);
       } catch (err) {
         console.error("Error handling Meta message:", err.message);
-        await sendWhatsAppMeta(from, `Maaf, ada gangguan sekejap. Cuba lagi atau call kami di ${RESTAURANT.phone} 😊`);
+        await sendWhatsAppMeta(
+          from,
+          `Maaf, ada gangguan sekejap. Cuba lagi atau call kami di ${restaurant.phone} 😊`,
+          incomingPhoneNumberId || PHONE_NUMBER_ID
+        );
       }
     }
     return;
   }
 
-  // --- Legacy Twilio format ---
+  // --- Legacy Twilio format (deprecated — single-tenant only, always the
+  //     fallback restaurant, since Twilio has no equivalent of Meta's
+  //     phone_number_id to route by) ---
   res.status(200).send("<Response></Response>");
   const incomingMsg = (req.body.Body || "").trim();
   const from = (req.body.From || "").replace("whatsapp:", "");
@@ -463,7 +532,7 @@ app.post("/webhook", async (req, res) => {
 
   console.log(`[IN-TWILIO] ${from}: ${incomingMsg}`);
   try {
-    const replyText = await generateReply(from, incomingMsg);
+    const replyText = await generateReply(from, incomingMsg, RESTAURANT);
     await sendWhatsApp(from, replyText);
   } catch (err) {
     console.error("Error:", err.message);
