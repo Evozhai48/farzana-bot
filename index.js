@@ -10,6 +10,14 @@
 //  own WhatsApp number is registered in Meta Business Manager —
 //  no other code changes or redeploys needed to onboard them.
 //
+//  BRING-YOUR-OWN META ACCOUNT: a client can also register their
+//  number under their OWN Meta Business Manager/WABA (their own
+//  card on file, their own messaging costs) instead of yours. In
+//  that case also set `accessToken` on their config to the token
+//  they generated (or granted via partner access) for their WABA —
+//  otherwise the shared META_ACCESS_TOKEN is used, which only
+//  works for numbers living inside YOUR Business Manager.
+//
 //  DEMO_RESTAURANT_ID is kept as a fallback: if an incoming
 //  phone_number_id doesn't match any configured client (e.g. the
 //  shared demo number, or a client not yet given their own number),
@@ -60,14 +68,14 @@ app.get("/webhook", (req, res) => {
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const META_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 
-async function sendWhatsAppMeta(to, text, phoneNumberId = PHONE_NUMBER_ID) {
+async function sendWhatsAppMeta(to, text, phoneNumberId = PHONE_NUMBER_ID, accessToken = META_ACCESS_TOKEN) {
   try {
     const res = await fetch(
       `https://graph.facebook.com/v25.0/${phoneNumberId}/messages`,
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${META_ACCESS_TOKEN}`,
+          "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -112,6 +120,13 @@ const pendingFollowUps = {};
 //  config automatically — no env var change, no redeploy, no new
 //  $5/month server. Just add the entry and it's live.
 //
+//  If the client registered their number under THEIR OWN Meta
+//  Business Manager (their own card on file) instead of yours,
+//  also add `accessToken: "<their WABA access token>"` — either a
+//  System User token they generated themselves, or the token you
+//  get once they've added you as a partner on their account. Leave
+//  it unset for clients living inside your own Business Manager.
+//
 //  Default fallback is "generic" (blank template) instead of
 //  "farzana" — fill in the bracketed fields live during a call,
 //  or add a new named key per prospect. "farzana" is kept below
@@ -123,6 +138,7 @@ const RESTAURANTS = {
     assistantName: "Hana",
     // phoneNumberId: "<Meta phone_number_id once they go live>",
     // ownerWhatsapp: "<owner's WhatsApp number for order/complaint alerts>",
+    // accessToken: "<only if this client uses their OWN Meta Business Manager>",
     address: "927, Jalan Mawar, Kampung Sungai Kayu Ara, 47400 Petaling Jaya, Selangor",
     phone: "017-316 2057",
     hours: "Open 24 hours, 7 days a week",
@@ -385,7 +401,7 @@ async function notifyOwner(type, detail, customerNumber, restaurant) {
     // a fallback "ada gangguan" message instead of their real order
     // confirmation. Switched to the working Meta sender + wrapped in
     // try/catch so a notify failure can never break the customer reply.
-    await sendWhatsAppMeta(ownerNumber, msg, restaurant.phoneNumberId || PHONE_NUMBER_ID);
+    await sendWhatsAppMeta(ownerNumber, msg, restaurant.phoneNumberId || PHONE_NUMBER_ID, restaurant.accessToken || META_ACCESS_TOKEN);
   } catch (err) {
     console.error("❌ Failed to notify owner:", err.message);
   }
@@ -436,7 +452,7 @@ function scheduleFollowUp(customerNumber, orderSummary, restaurant) {
       // migration — the same bug already fixed in notifyOwner(). Switched
       // to the working Meta sender, from this restaurant's own number
       // when it has one.
-      await sendWhatsAppMeta(customerNumber, followUpMsg, restaurant.phoneNumberId || PHONE_NUMBER_ID);
+      await sendWhatsAppMeta(customerNumber, followUpMsg, restaurant.phoneNumberId || PHONE_NUMBER_ID, restaurant.accessToken || META_ACCESS_TOKEN);
     } catch (err) {
       console.error("Follow-up failed:", err.message);
     }
@@ -509,13 +525,14 @@ app.post("/webhook", async (req, res) => {
       console.log(`[IN-META] (${restaurant.name}) ${from}: ${incomingMsg}`);
       try {
         const replyText = await generateReply(from, incomingMsg, restaurant);
-        await sendWhatsAppMeta(from, replyText, incomingPhoneNumberId || PHONE_NUMBER_ID);
+        await sendWhatsAppMeta(from, replyText, incomingPhoneNumberId || PHONE_NUMBER_ID, restaurant.accessToken || META_ACCESS_TOKEN);
       } catch (err) {
         console.error("Error handling Meta message:", err.message);
         await sendWhatsAppMeta(
           from,
           `Maaf, ada gangguan sekejap. Cuba lagi atau call kami di ${restaurant.phone} 😊`,
-          incomingPhoneNumberId || PHONE_NUMBER_ID
+          incomingPhoneNumberId || PHONE_NUMBER_ID,
+          restaurant.accessToken || META_ACCESS_TOKEN
         );
       }
     }
