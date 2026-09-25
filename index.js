@@ -246,6 +246,39 @@ Extra:
   },
 
   // ── Add new prospects below this line ──────────────────────
+  gepuklah: {
+    name: "Gepuklah by mingchuun",
+    assistantName: "Hana",
+    address: "No.27, Ground Floor, Jalan SS 22/11, Damansara Jaya, 47400 Petaling Jaya, Selangor",
+    phone: "03-8723 8801",
+    hours: "11:00 AM – 9:00 PM, Closed Mondays",
+    priceRange: "RM 6 – RM 26 per person",
+    services: "Dine-in only (no takeaway/delivery currently)",
+    menu: `
+Signature Bowls:
+- Mingchuun's Bowl (Boneless Ayam Gepuk + Mushroom + Kubis + Bayam) – RM 25.90
+- Boneless Ayam Gepuk (crispy boneless chicken thigh, savoury peppery crust, nasi lemak rice, sambal gajus, bayam goreng, tempeh & timun, sunny-side-up egg) – RM 18.90
+- Smoked Duck Gepuk (smoked duck, nasi lemak rice, sambal gajus, bayam goreng, tempeh & timun, sunny-side-up egg) – RM 24.90
+- Crispy Oyster Mushroom Gepuk (crispy oyster mushroom, nasi lemak rice, sambal gajus, bayam goreng, tempeh & timun, sunny-side-up egg) – RM 17.90
+
+Upgrade Your Bowl:
+- Extra Sunny-Side-Up Egg – RM 1.90
+- Extra Bayam Goreng – RM 3.90
+- Extra Boneless Chicken Thigh – RM 8.90
+- Extra Crispy Oyster Mushroom – RM 7.90
+- Extra Smoked Duck Breast – RM 14.90
+
+Sides (a la carte):
+- Oyster Mushroom – RM 9.90
+- Kubis Goreng (Thinly Sliced Fried Cabbage) – RM 5.90
+- Boneless Fried Chicken – RM 10.90
+- Bayam Goreng – RM 6.90
+- Sunny-Side-Up Egg – RM 2.90
+
+Note: Free refill on Nasi Lemak Rice & Sambal Gajus, dine-in guests only. All prices exclude service charge.
+    `.trim(),
+  },
+
   // dyamu_tomyam: {
   //   name: "Dyamu Tomyam 4",
   //   assistantName: "Hana",
