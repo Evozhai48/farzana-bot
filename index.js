@@ -120,6 +120,16 @@ const pendingFollowUps = {};
 //  config automatically — no env var change, no redeploy, no new
 //  $5/month server. Just add the entry and it's live.
 //
+//  TIER + ALERT RECIPIENTS:
+//  Add `tier: "Starter" | "Growth" | "Pro"` for tracking (informational
+//  only right now — no feature auto-unlocks from it yet).
+//  For Starter (order/complaint alert to owner only), set `ownerWhatsapp`
+//  as above. For Growth ("owner + staff group" as pitched), set
+//  `alertNumbers: ["<owner number>", "<staff number 1>", ...]` instead —
+//  each person gets their own individual WhatsApp message, since the
+//  Meta Cloud API cannot post into an actual WhatsApp group chat. If
+//  `alertNumbers` is set it takes priority over `ownerWhatsapp`.
+//
 //  If the client registered their number under THEIR OWN Meta
 //  Business Manager (their own card on file) instead of yours,
 //  also add `accessToken: "<their WABA access token>"` — either a
@@ -413,10 +423,22 @@ async function sendWhatsApp(to, body) {
   });
 }
 
-// ── Notify owner (uses Meta API — Twilio path is deprecated) ────
+// ── Notify owner/staff (uses Meta API — Twilio path is deprecated) ──
+// Alert recipients come from restaurant.alertNumbers (array — supports
+// Growth-tier "owner + staff", each gets their own individual WhatsApp
+// message, since Meta Cloud API cannot message a WhatsApp group).
+// Falls back to restaurant.ownerWhatsapp (single number, Starter tier),
+// then to the global OWNER_WHATSAPP_NUMBER env var (demo fallback).
 async function notifyOwner(type, detail, customerNumber, restaurant) {
-  const ownerNumber = restaurant.ownerWhatsapp || process.env.OWNER_WHATSAPP_NUMBER;
-  if (!ownerNumber) return;
+  let recipients = [];
+  if (Array.isArray(restaurant.alertNumbers) && restaurant.alertNumbers.length) {
+    recipients = restaurant.alertNumbers;
+  } else if (restaurant.ownerWhatsapp) {
+    recipients = [restaurant.ownerWhatsapp];
+  } else if (process.env.OWNER_WHATSAPP_NUMBER) {
+    recipients = [process.env.OWNER_WHATSAPP_NUMBER];
+  }
+  if (!recipients.length) return;
 
   let msg = "";
   if (type === "ORDER") {
@@ -433,16 +455,19 @@ async function notifyOwner(type, detail, customerNumber, restaurant) {
       `Sila follow up segera!`;
   }
 
-  try {
-    // NOTE: previously used the Twilio-based sendWhatsApp(), which throws
-    // because Twilio credentials are no longer valid post Meta-migration.
-    // That uncaught error was bubbling up and causing the CUSTOMER to see
-    // a fallback "ada gangguan" message instead of their real order
-    // confirmation. Switched to the working Meta sender + wrapped in
-    // try/catch so a notify failure can never break the customer reply.
-    await sendWhatsAppMeta(ownerNumber, msg, restaurant.phoneNumberId || PHONE_NUMBER_ID, restaurant.accessToken || META_ACCESS_TOKEN);
-  } catch (err) {
-    console.error("❌ Failed to notify owner:", err.message);
+  // NOTE: previously used the Twilio-based sendWhatsApp(), which throws
+  // because Twilio credentials are no longer valid post Meta-migration.
+  // That uncaught error was bubbling up and causing the CUSTOMER to see
+  // a fallback "ada gangguan" message instead of their real order
+  // confirmation. Switched to the working Meta sender + wrapped in
+  // try/catch (per recipient) so one bad number, or a notify failure,
+  // can never break the customer's reply or block other recipients.
+  for (const number of recipients) {
+    try {
+      await sendWhatsAppMeta(number, msg, restaurant.phoneNumberId || PHONE_NUMBER_ID, restaurant.accessToken || META_ACCESS_TOKEN);
+    } catch (err) {
+      console.error(`❌ Failed to notify ${number}:`, err.message);
+    }
   }
 }
 
