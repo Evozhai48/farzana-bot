@@ -386,6 +386,16 @@ THINGS YOU DON'T KNOW:
 - Example: "Stock tak sure real-time, tapi boleh order — nanti staff confirm bila prepare ye"
 - Still follow the normal ORDERING RULES below and end with [ORDER_CONFIRMED: ...] so staff sees exactly what was ordered and can quickly check/prepare it — that's what saves them time, not a phone number
 
+TABLE RESERVATION REQUESTS — VERY IMPORTANT:
+- If a customer asks to book/reserve a table, collect: name, date, time, and number of pax (ask one by one or together, whichever flows naturally)
+- Be honest: you cannot guarantee or confirm a table yourself — you can only pass the request to staff
+- Once you have all the details, confirm them back in one message, e.g.:
+  "Okay, confirm ye: Reservation untuk [name], [pax] orang, [date] jam [time]. Betul?"
+- After the customer confirms, reply warmly (e.g. "Noted! Staff kami akan confirm meja untuk you, nanti kami WhatsApp balik ye 😊") and end your message with exactly this line on its own:
+  [RESERVATION_REQUESTED: <name>, <pax> pax, <date> <time>]
+- Example: [RESERVATION_REQUESTED: Ming, 4 pax, 6 Oct 8:00 PM]
+- Never say the reservation is "confirmed" or "booked" — only that the request has been passed to staff
+
 Stay helpful, honest, and warm. You represent ${r.name}.
 `.trim();
 }
@@ -453,6 +463,12 @@ async function notifyOwner(type, detail, customerNumber, restaurant) {
       `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
       `Isu: ${detail}\n` +
       `Sila follow up segera!`;
+  } else if (type === "RESERVATION") {
+    msg =
+      `📅 *Reservation Baru!*\n` +
+      `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
+      `Detail: ${detail}\n` +
+      `Sila confirm meja & reply customer terus ye.`;
   }
 
   // NOTE: previously used the Twilio-based sendWhatsApp(), which throws
@@ -493,6 +509,32 @@ async function logOrderToSheet(orderSummary, customerNumber, restaurant) {
     });
   } catch (err) {
     console.error("❌ Failed to log order to sheet:", err.message);
+  }
+}
+
+// ── Log reservation request to the same sheet as orders, tagged
+// distinctly (status: "New Reservation") so it's filterable. A proper
+// separate "Reservations" tab would need its own Zapier Sheet action —
+// not something settable from code, so this reuses the existing one. ──
+async function logReservationToSheet(reservationSummary, customerNumber, restaurant) {
+  if (!ZAPIER_ORDER_WEBHOOK_URL) {
+    console.warn("⚠️ ZAPIER_ORDER_WEBHOOK_URL not set — skipping sheet log.");
+    return;
+  }
+  try {
+    await fetch(ZAPIER_ORDER_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        timestamp: new Date().toLocaleString("en-MY", { timeZone: "Asia/Kuala_Lumpur" }),
+        restaurant: restaurant.name,
+        customer_phone: customerNumber,
+        order_summary: `[RESERVATION] ${reservationSummary}`,
+        status: "New Reservation",
+      }),
+    });
+  } catch (err) {
+    console.error("❌ Failed to log reservation to sheet:", err.message);
   }
 }
 
@@ -545,6 +587,7 @@ async function generateReply(from, incomingMsg, restaurant) {
 
   const orderMatch = replyText.match(/\[ORDER_CONFIRMED:\s*(.+?)\]/);
   const complaintMatch = replyText.match(/\[COMPLAINT_FLAGGED:\s*(.+?)\]/);
+  const reservationMatch = replyText.match(/\[RESERVATION_REQUESTED:\s*(.+?)\]/);
 
   if (orderMatch) {
     const orderSummary = orderMatch[1].trim();
@@ -558,6 +601,13 @@ async function generateReply(from, incomingMsg, restaurant) {
     const complaintDetail = complaintMatch[1].trim();
     replyText = replyText.replace(complaintMatch[0], "").trim();
     await notifyOwner("COMPLAINT", complaintDetail, from, restaurant);
+  }
+
+  if (reservationMatch) {
+    const reservationSummary = reservationMatch[1].trim();
+    replyText = replyText.replace(reservationMatch[0], "").trim();
+    await notifyOwner("RESERVATION", reservationSummary, from, restaurant);
+    await logReservationToSheet(reservationSummary, from, restaurant);
   }
 
   return replyText;
