@@ -285,6 +285,10 @@ Sides (a la carte):
 - Bayam Goreng – RM 6.90
 - Sunny-Side-Up Egg – RM 2.90
 
+Drinks:
+- Ham Leng Chat (signature house drink, refreshing, great for cutting through the spiciness of the sambal) – RM 9.90
+- Salted Calamansi Soda – RM 9.90
+
 Note: Free refill on Nasi Lemak Rice & Sambal Gajus, dine-in guests only. All prices exclude service charge.
     `.trim(),
   },
