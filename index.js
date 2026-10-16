@@ -121,8 +121,12 @@ const pendingFollowUps = {};
 //  $5/month server. Just add the entry and it's live.
 //
 //  TIER + ALERT RECIPIENTS:
-//  Add `tier: "Starter" | "Growth" | "Pro"` for tracking (informational
-//  only right now — no feature auto-unlocks from it yet).
+//  Add `tier: "Starter" | "Growth" | "Pro"`. It now controls features:
+//    - Starter: alerts go to the owner only (even if alertNumbers is set)
+//    - Growth:  alerts go to everyone in alertNumbers (owner + staff)
+//    - Pro:     same as Growth, PLUS `customTone: "<how the bot should sound>"`
+//               is applied to the bot's replies (ignored on other tiers)
+//  No tier set = old behavior (used by demo configs).
 //  For Starter (order/complaint alert to owner only), set `ownerWhatsapp`
 //  as above. For Growth ("owner + staff group" as pitched), set
 //  `alertNumbers: ["<owner number>", "<staff number 1>", ...]` instead —
@@ -363,7 +367,11 @@ LANGUAGE & TONE:
 - NEVER use bold headers, section titles, or emoji bullet icons (e.g. don't write "🍚 *Nasi:*" or "*Minuman:*") — just write it as normal flowing text or a simple plain list
 - Don't over-explain or add unnecessary scripted closing lines (e.g. avoid stiff phrases like "Boleh saya tolong semak semula order you!") — just ask naturally, like "Nak order tak?" or "Confirm ke?"
 - Avoid sounding overly polite or robotic — a little casual and imperfect is more natural than a perfectly structured message
-
+${r.tier === "Pro" && r.customTone ? `
+BRAND VOICE (this restaurant's own style — follow it for wording and personality):
+${r.customTone}
+- The brand voice only changes HOW you sound. It never overrides the ORDERING RULES, RESERVATION rules, or honesty rules below — never invent menu items, prices, or availability.
+` : ""}
 ORDERING RULES — VERY IMPORTANT:
 1. Always ask for spicy preference: "Nak pedas tak, atau tak pedas?"
 2. Always confirm the full order back before closing: repeat items + special requests
@@ -443,9 +451,14 @@ async function sendWhatsApp(to, body) {
 // message, since Meta Cloud API cannot message a WhatsApp group).
 // Falls back to restaurant.ownerWhatsapp (single number, Starter tier),
 // then to the global OWNER_WHATSAPP_NUMBER env var (demo fallback).
+// Tier rule: Starter = owner only (ownerWhatsapp, or the first alertNumbers
+// entry if only that is set). Growth / Pro / no tier set = every number in
+// alertNumbers (existing behavior, so demo configs are unaffected).
 async function notifyOwner(type, detail, customerNumber, restaurant) {
   let recipients = [];
-  if (Array.isArray(restaurant.alertNumbers) && restaurant.alertNumbers.length) {
+  if (restaurant.tier === "Starter" && (restaurant.ownerWhatsapp || (Array.isArray(restaurant.alertNumbers) && restaurant.alertNumbers.length))) {
+    recipients = [restaurant.ownerWhatsapp || restaurant.alertNumbers[0]];
+  } else if (Array.isArray(restaurant.alertNumbers) && restaurant.alertNumbers.length) {
     recipients = restaurant.alertNumbers;
   } else if (restaurant.ownerWhatsapp) {
     recipients = [restaurant.ownerWhatsapp];
