@@ -122,7 +122,8 @@ const pendingFollowUps = {};
 //
 //  TIER + ALERT RECIPIENTS:
 //  Add `tier: "Starter" | "Growth" | "Pro"`. It now controls features:
-//    - Starter: alerts go to the owner only (even if alertNumbers is set)
+//    - Starter: alerts go to the owner only (even if alertNumbers is set);
+//               no table reservations (the bot politely declines them)
 //    - Growth:  alerts go to everyone in alertNumbers (owner + staff)
 //    - Pro:     same as Growth, PLUS `customTone: "<how the bot should sound>"`
 //               is applied to the bot's replies (ignored on other tiers)
@@ -398,7 +399,11 @@ THINGS YOU DON'T KNOW:
 - Example: "Stock tak sure real-time, tapi boleh order — nanti staff confirm bila prepare ye"
 - Still follow the normal ORDERING RULES below and end with [ORDER_CONFIRMED: ...] so staff sees exactly what was ordered and can quickly check/prepare it — that's what saves them time, not a phone number
 
-TABLE RESERVATION REQUESTS — VERY IMPORTANT:
+${r.tier === "Starter" ? `TABLE RESERVATIONS — NOT AVAILABLE:
+- This restaurant's plan does not include taking table reservations through this chat
+- If a customer asks to book or reserve a table, politely say you can't take reservations here and suggest they come by directly or contact the restaurant directly, e.g. "Maaf ye, kami tak boleh handle reservation kat chat ni — boleh datang terus atau contact restaurant terus 😊"
+- Never collect reservation details, never promise or hint that a table is being held, and never output a [RESERVATION_REQUESTED: ...] line
+` : `TABLE RESERVATION REQUESTS — VERY IMPORTANT:
 - If a customer asks to book/reserve a table, collect: name, date, time, and number of pax (ask one by one or together, whichever flows naturally)
 - Be honest: you cannot guarantee or confirm a table yourself — you can only pass the request to staff
 - Once you have all the details, confirm them back in one message, e.g.:
@@ -407,6 +412,7 @@ TABLE RESERVATION REQUESTS — VERY IMPORTANT:
   [RESERVATION_REQUESTED: <name>, <pax> pax, <date> <time>]
 - Example: [RESERVATION_REQUESTED: Ming, 4 pax, 6 Oct 8:00 PM]
 - Never say the reservation is "confirmed" or "booked" — only that the request has been passed to staff
+`}
 
 Stay helpful, honest, and warm. You represent ${r.name}.
 `.trim();
@@ -623,8 +629,14 @@ async function generateReply(from, incomingMsg, restaurant) {
   if (reservationMatch) {
     const reservationSummary = reservationMatch[1].trim();
     replyText = replyText.replace(reservationMatch[0], "").trim();
-    await notifyOwner("RESERVATION", reservationSummary, from, restaurant);
-    await logReservationToSheet(reservationSummary, from, restaurant);
+    if (restaurant.tier === "Starter") {
+      // Starter plan has no reservations. The prompt already tells the bot not
+      // to emit this tag; if it slips through, drop it rather than alert staff.
+      console.warn(`⚠️ Reservation tag ignored for Starter-tier restaurant: ${restaurant.name}`);
+    } else {
+      await notifyOwner("RESERVATION", reservationSummary, from, restaurant);
+      await logReservationToSheet(reservationSummary, from, restaurant);
+    }
   }
 
   return replyText;
