@@ -298,6 +298,30 @@ Note: Free refill on Nasi Lemak Rice & Sambal Gajus, dine-in guests only. All pr
     `.trim(),
   },
 
+  // Catering demo for Golden Food Caterer (Taman Perindustrian Jaya, PJ).
+  // businessType: "catering" switches the bot from meal ordering to EVENT ordering:
+  // no spicy/dine-in questions, collects event date/pax/venue/dietary needs, never
+  // quotes prices or holds dates, and skips the 30-minute "was the food okay?" follow-up.
+  // NOTE: address, phone and the one named dish come from their Google Maps listing and
+  // flyer. Replace `menu` with the owner's real packages/prices once he shares them.
+  golden_caterer: {
+    name: "Golden Food Caterer",
+    businessType: "catering",
+    assistantName: "Hana",
+    address: "26, Jalan TPJ 10, Taman Perindustrian Jaya, 47200 Petaling Jaya, Selangor",
+    phone: "019-649 2944",
+    hours: "Office opens 9:00 AM (staff will confirm exact hours and any public holiday changes)",
+    priceRange: "Quoted per event, depending on number of pax and menu",
+    services: "Event catering with 40 years of experience, for celebrations and corporate or family events. Buffet setup available.",
+    menu: `
+Known favourite:
+- Keema Chicken Balls
+
+Menu and packages are customised for each event. Staff will suggest dishes and prepare a quotation based on the number of pax, the type of event and the customer's budget.
+Do not invent dishes, packages or prices that are not listed here. If a customer asks for specific dishes or prices, say staff will send the menu and quotation.
+    `.trim(),
+  },
+
   // dyamu_tomyam: {
   //   name: "Dyamu Tomyam 4",
   //   assistantName: "Hana",
@@ -345,8 +369,52 @@ function getRestaurantForIncoming(incomingPhoneNumberId) {
 
 // ── System prompt builder ───────────────────────────────────
 function buildSystemPrompt(r) {
+  const isCatering = r.businessType === "catering";
+
+  const orderingBlock = isCatering
+    ? `ORDERING RULES — VERY IMPORTANT (CATERING / EVENT ORDERS):
+This is a catering business, not a restaurant. Customers are booking food for an event, not ordering a single meal. Do NOT ask about spicy level or dine-in/takeaway.
+1. Collect these event details, asking naturally a couple at a time (not a long form): customer name, type of event (wedding, corporate, family gathering, etc.), event date and time, venue or address, and number of pax
+2. Ask about food preferences: veg, non-veg or both, any halal requirement, and any allergies or special requests
+3. Ask what they have in mind for the menu or budget per pax. If they are unsure, offer to have staff suggest options
+4. Ask if they need delivery only, or delivery with buffet setup and service staff
+5. Never quote prices, packages or availability that are not in the MENU section. Say staff will prepare a quotation, e.g. "Our team will prepare a quotation based on pax and menu, then WhatsApp you back"
+6. Repeat the full event details back and confirm before closing. This is critical
+7. Never say the date is free, booked or confirmed. Only say the enquiry has been passed to staff to confirm
+
+AFTER EVENT DETAILS ARE CONFIRMED:
+- End your message with exactly this line on its own:
+  [ORDER_CONFIRMED: <summary of the event order in one line>]
+- Example: [ORDER_CONFIRMED: Wedding lunch buffet, 150 pax, 14 Dec 2026 12:00 PM, Shah Alam hall, veg + non-veg, halal, delivery + setup — Ravi]`
+    : `ORDERING RULES — VERY IMPORTANT:
+1. Always ask for spicy preference: "Nak pedas tak, atau tak pedas?"
+2. Always confirm the full order back before closing: repeat items + special requests
+3. Always ask: "Dine-in, takeaway, atau delivery?"
+4. For delivery: ask for full address
+5. If customer says "no spicy" or "tak pedas" — acknowledge it clearly: "Okay, noted — tak pedas ye! 👍"
+6. Never skip confirming special requests — this is critical
+
+AFTER ORDER IS CONFIRMED:
+- End your message with exactly this line on its own:
+  [ORDER_CONFIRMED: <summary of order in one line>]
+- Example: [ORDER_CONFIRMED: Nasi Goreng Ayam x1 (tak pedas), Teh Tarik x1 — Takeaway]`;
+
+  const unknownTail = isCatering
+    ? `- Don't redirect the customer to call anyone. Be upfront but keep it simple: say you can't confirm that yourself, but take their event details anyway so staff can check and confirm
+- Example: "I can't confirm the date myself, but I'll pass your details to our team and they'll confirm with you"
+- Still follow the ORDERING RULES and end with [ORDER_CONFIRMED: ...] so staff sees exactly what the customer asked for — that's what saves them time, not a phone number`
+    : `- Don't redirect the customer to call anyone. Instead, be upfront but keep it simple: say you can't confirm live stock, but take their order anyway so staff can check and confirm it
+- Example: "Stock tak sure real-time, tapi boleh order — nanti staff confirm bila prepare ye"
+- Still follow the normal ORDERING RULES below and end with [ORDER_CONFIRMED: ...] so staff sees exactly what was ordered and can quickly check/prepare it — that's what saves them time, not a phone number`;
+
+  const cateringDateBlock = `DATE HOLDING / AVAILABILITY:
+- You cannot check calendars, hold a date or confirm a booking. Only staff can
+- If a customer asks whether a date is free or wants to book it, collect the event details above, then say the enquiry has been passed to staff who will confirm availability and send a quotation
+- Never say a date is confirmed, booked or reserved, and never output a [RESERVATION_REQUESTED: ...] line
+`;
+
   return `
-You are ${r.assistantName}, the friendly WhatsApp assistant for ${r.name} restaurant.
+You are ${r.assistantName}, the friendly WhatsApp assistant for ${r.name}${isCatering ? "" : " restaurant"}.
 
 RESTAURANT INFO:
 - Name: ${r.name}
@@ -361,7 +429,7 @@ ${r.menu}
 
 LANGUAGE & TONE:
 - Reply in the same language the customer uses
-- Default to friendly Bahasa Malaysia mixed with English (Manglish)
+- ${isCatering ? "Default to friendly, clear English with a little Malay mixed in (Manglish)" : "Default to friendly Bahasa Malaysia mixed with English (Manglish)"}
 - Keep replies short, warm, and clear — like a friendly staff member texting on their phone, NOT like a formal AI assistant
 - Use 😊 occasionally but don't overdo emojis
 - Write like a real person casually texting: short sentences, natural contractions (takde, kot, jugak, ye)
@@ -373,18 +441,7 @@ BRAND VOICE (this restaurant's own style — follow it for wording and personali
 ${r.customTone}
 - The brand voice only changes HOW you sound. It never overrides the ORDERING RULES, RESERVATION rules, or honesty rules below — never invent menu items, prices, or availability.
 ` : ""}
-ORDERING RULES — VERY IMPORTANT:
-1. Always ask for spicy preference: "Nak pedas tak, atau tak pedas?"
-2. Always confirm the full order back before closing: repeat items + special requests
-3. Always ask: "Dine-in, takeaway, atau delivery?"
-4. For delivery: ask for full address
-5. If customer says "no spicy" or "tak pedas" — acknowledge it clearly: "Okay, noted — tak pedas ye! 👍"
-6. Never skip confirming special requests — this is critical
-
-AFTER ORDER IS CONFIRMED:
-- End your message with exactly this line on its own:
-  [ORDER_CONFIRMED: <summary of order in one line>]
-- Example: [ORDER_CONFIRMED: Nasi Goreng Ayam x1 (tak pedas), Teh Tarik x1 — Takeaway]
+${orderingBlock}
 
 COMPLAINTS:
 - If a customer complains about food quality, wrong order, or bad experience:
@@ -394,12 +451,10 @@ COMPLAINTS:
   - Example: [COMPLAINT_FLAGGED: Customer received spicy food despite requesting tak pedas]
 
 THINGS YOU DON'T KNOW:
-- Real-time wait times or stock availability — you can't confirm these live
-- Don't redirect the customer to call anyone. Instead, be upfront but keep it simple: say you can't confirm live stock, but take their order anyway so staff can check and confirm it
-- Example: "Stock tak sure real-time, tapi boleh order — nanti staff confirm bila prepare ye"
-- Still follow the normal ORDERING RULES below and end with [ORDER_CONFIRMED: ...] so staff sees exactly what was ordered and can quickly check/prepare it — that's what saves them time, not a phone number
+- Real-time wait times or stock availability — you can't confirm these live${isCatering ? ", and also whether an event date is free, final prices or kitchen capacity (staff confirm these in the quotation)" : ""}
+${unknownTail}
 
-${r.tier === "Starter" ? `TABLE RESERVATIONS — NOT AVAILABLE:
+${isCatering ? cateringDateBlock : r.tier === "Starter" ? `TABLE RESERVATIONS — NOT AVAILABLE:
 - This restaurant's plan does not include taking table reservations through this chat
 - If a customer asks to book or reserve a table, politely say you can't take reservations here and suggest they come by directly or contact the restaurant directly, e.g. "Maaf ye, kami tak boleh handle reservation kat chat ni — boleh datang terus atau contact restaurant terus 😊"
 - Never collect reservation details, never promise or hint that a table is being held, and never output a [RESERVATION_REQUESTED: ...] line
@@ -475,10 +530,11 @@ async function notifyOwner(type, detail, customerNumber, restaurant) {
 
   let msg = "";
   if (type === "ORDER") {
+    const isCatering = restaurant.businessType === "catering";
     msg =
-      `🛎️ *Pesanan Baru!*\n` +
+      `🛎️ *${isCatering ? "Order Catering Baru!" : "Pesanan Baru!"}*\n` +
       `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
-      `Order: ${detail}\n` +
+      `${isCatering ? "Event" : "Order"}: ${detail}\n` +
       `Masa: ${new Date().toLocaleTimeString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}`;
   } else if (type === "COMPLAINT") {
     msg =
@@ -617,7 +673,8 @@ async function generateReply(from, incomingMsg, restaurant) {
     replyText = replyText.replace(orderMatch[0], "").trim();
     await notifyOwner("ORDER", orderSummary, from, restaurant);
     await logOrderToSheet(orderSummary, from, restaurant);
-    scheduleFollowUp(from, orderSummary, restaurant);
+    // Catering orders are for a future event, so the "was the food okay?" check-in does not apply
+    if (restaurant.businessType !== "catering") scheduleFollowUp(from, orderSummary, restaurant);
   }
 
   if (complaintMatch) {
@@ -629,8 +686,8 @@ async function generateReply(from, incomingMsg, restaurant) {
   if (reservationMatch) {
     const reservationSummary = reservationMatch[1].trim();
     replyText = replyText.replace(reservationMatch[0], "").trim();
-    if (restaurant.tier === "Starter") {
-      // Starter plan has no reservations. The prompt already tells the bot not
+    if (restaurant.tier === "Starter" || restaurant.businessType === "catering") {
+      // Starter plan has no reservations (and catering uses event orders instead). The prompt already tells the bot not
       // to emit this tag; if it slips through, drop it rather than alert staff.
       console.warn(`⚠️ Reservation tag ignored for Starter-tier restaurant: ${restaurant.name}`);
     } else {
