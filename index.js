@@ -322,6 +322,74 @@ Do not invent dishes, packages or prices that are not listed here. If a customer
     `.trim(),
   },
 
+  // Demo config for The Qiū Dining (Bukit Tinggi, Bentong, Pahang), linked to the Shizuku Coffee / Q Dining owner.
+  // Menu transcribed from photos of the printed "AM Picks" and beverage cards. Some other menu photos show
+  // higher prices on handwritten stickers (pizzas, sourdoughs, cheese toast), so confirm current prices
+  // with the owner before showing this to him. noDelivery: Google lists dine-in and takeaway only.
+  qiu_dining: {
+    name: "The Qiū Dining",
+    noDelivery: true,
+    assistantName: "Hana",
+    address: "Geran Mukim 7509, No. Lot 28208, Bukit Tinggi, 28750 Bentong, Pahang",
+    phone: "012-945 9455",
+    hours: "Closes at 7:00 PM (staff will confirm opening hours)",
+    priceRange: "RM 20 – RM 40 per person",
+    services: "Dine-in and takeaway only (no delivery). Cafe in a nature setting in Bukit Tinggi.",
+    menu: `
+Malaysian Love:
+- Nasi Lemak Fried Chicken (coconut rice, crispy spiced fried chicken, ikan bilis, kacang tanah, cucumber, sambal, egg) – RM 20
+- Nasi Lemak Fried Sotong (golden fried sotong, coconut rice, ikan bilis, kacang tanah, cucumber, sambal, egg) – RM 26
+- Nasi Lemak Fried Prawn (fried prawn meat, coconut rice, ikan bilis, kacang tanah, cucumber, sambal, egg) – RM 20
+
+Oven-Loved Pizzas (10"):
+- Classic Cheesy Delight (generous layer of gooey, melty cheese) – RM 22
+- Chicken & Mushroom Medley (juicy chicken and earthy mushrooms on rich tomato sauce and cheese) – RM 28
+- Ocean's Harvest Pizza (seafood toppings) – RM 30
+- The Hawaiian's (sweet pineapple and savory ham) – RM 28
+
+Flavors From The Wok:
+- Tomyum Shrimp Fried Rice (fried rice with prawn meat, spring onions, tomyum flavors, egg) – RM 20
+- Thai Basil Fried Rice (minced chicken, Thai basil, chilli padi, sunny-side-up egg) – RM 18
+
+Bold N Spicy (each served with mashed potato, Pataje Joppie, cherry tomatoes, cucumber and purple cabbage cream):
+- Chilli Lime Chicken Chop – RM 26
+- Cumin Chicken Chop – RM 26
+- Spicy Mala Chicken Chop – RM 26
+
+Street Tacos:
+- Crispy Chick Taco (golden fried chicken, cucumber, sambal mayo, soft taco) – RM 22
+- Smokin' Quack Taco (smokey duck, cucumber, spicy sambal mayo, soft taco shell) – RM 20
+- Sizzling Sausage Taco (juicy sausage, cucumber, creamy sambal mayo, soft taco) – RM 20
+
+Artisanal Sourdoughs:
+- Mushroom Melt Sourdough (shiitake mushrooms, mozzarella, cheddar, with straight-cut fries) – RM 26
+- Smoky Peach Sourdough (smoked duck, scrambled egg, peach, honey mustard sauce) – RM 22
+- Prawn & Peach Delight (scrambled egg, prawns, sweet peach, honey mustard sauce) – RM 26
+- Sunny Sourdough (scrambled eggs on toasted sourdough, with straight-cut fries) – RM 24
+- Ultimate Cheese Toast (sourdough stuffed with mozzarella and cheddar, with crispy fries) – RM 18
+
+Morning Fix:
+- The AM Spread (sourdough, scrambled eggs, chicken sausage, hashbrown, shiitake mushrooms) – RM 30
+- Classic Kaya Toast Set (Hainan toast with butter and kaya, soft-boiled eggs) – RM 14
+
+Sides:
+- Arabiata Chicken Skewers (with red onion, capsicum, Beijing cabbage, Pataje Joppie sauce) – RM 22
+- Crispy Sweet Potato Fries (with zesty Pataje Joppie sauce) – RM 20
+- Breaded Scallop Bites (6 pcs, with Pataje Joppie sauce) – RM 22
+- Classic Fries (with Pataje Joppie sauce) – RM 18
+
+Classic Coffee (iced or hot): White – RM 13, Black – RM 11, Rose Latte – RM 14, Caramel Latte – RM 14, Mocha – RM 14
+Chocolate / Matcha (iced or hot): Chocolate – RM 15, Matcha Latte – RM 15, Matcha Tea – RM 15
+Soda: Peach Mango – RM 13, Passion Peach – RM 13, Strawberry Lychee – RM 13, Lychee Passion – RM 13
+Juice: Orange – RM 15, Lemonade – RM 15, Apple – RM 15
+Iced Tea: Lychee Rose – RM 16, Lemon – RM 16, Passion Strawberry – RM 16, Peach Orange Plum – RM 16
+Hot Tea: English Breakfast – RM 14, Kiwiberry Oolong – RM 14, Lemongrass Ginger – RM 14, Earl Grey – RM 14
+Curated Drinks: Autumn Leaves – RM 18, Matcha Cloud – RM 18, Fireworks – RM 22, Coffee Zest – RM 18
+
+Desserts: Cakes of the month (customers can ask the servers or check the counter for this month's special cakes).
+    `.trim(),
+  },
+
   // dyamu_tomyam: {
   //   name: "Dyamu Tomyam 4",
   //   assistantName: "Hana",
@@ -371,6 +439,13 @@ function getRestaurantForIncoming(incomingPhoneNumberId) {
 function buildSystemPrompt(r) {
   const isCatering = r.businessType === "catering";
 
+  const askType = r.noDelivery
+    ? 'Always ask: "Dine-in atau takeaway?" (we do not offer delivery)'
+    : 'Always ask: "Dine-in, takeaway, atau delivery?"';
+  const deliveryRule = r.noDelivery
+    ? "We do not offer delivery. If a customer asks for delivery, politely tell them it is dine-in and takeaway only"
+    : "For delivery: ask for full address";
+
   const orderingBlock = isCatering
     ? `ORDERING RULES — VERY IMPORTANT (CATERING / EVENT ORDERS):
 This is a catering business, not a restaurant. Customers are booking food for an event, not ordering a single meal. Do NOT ask about spicy level or dine-in/takeaway.
@@ -389,8 +464,8 @@ AFTER EVENT DETAILS ARE CONFIRMED:
     : `ORDERING RULES — VERY IMPORTANT:
 1. Always ask for spicy preference: "Nak pedas tak, atau tak pedas?"
 2. Always confirm the full order back before closing: repeat items + special requests
-3. Always ask: "Dine-in, takeaway, atau delivery?"
-4. For delivery: ask for full address
+3. ${askType}
+4. ${deliveryRule}
 5. If customer says "no spicy" or "tak pedas" — acknowledge it clearly: "Okay, noted — tak pedas ye! 👍"
 6. Never skip confirming special requests — this is critical
 
