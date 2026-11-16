@@ -405,8 +405,9 @@ Desserts: Cakes of the month (customers can ask the servers or check the counter
   // },
 };
 
-const DEMO_ID = process.env.DEMO_RESTAURANT_ID || "generic";
-const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.generic;
+const DEMO_RESTAURANT_ID = "qiu_dining";
+const RESTAURANT = RESTAURANTS.qiu_dining;
+
 
 if (!RESTAURANTS[DEMO_ID]) {
   console.warn(`⚠️ DEMO_RESTAURANT_ID="${DEMO_ID}" not found in RESTAURANTS — falling back to "generic".`);
