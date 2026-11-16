@@ -405,8 +405,10 @@ Desserts: Cakes of the month (customers can ask the servers or check the counter
   // },
 };
 
-const DEMO_RESTAURANT_ID = "qiu_dining";
-const RESTAURANT = RESTAURANTS.qiu_dining;
+// Demo is pinned to The Qiu Dining. To switch demos again, change this key (or use
+// process.env.DEMO_RESTAURANT_ID || "generic" to go back to the env-var setup).
+const DEMO_ID = "qiu_dining";
+const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.generic;
 
 
 if (!RESTAURANTS[DEMO_ID]) {
