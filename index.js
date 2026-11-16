@@ -329,6 +329,7 @@ Do not invent dishes, packages or prices that are not listed here. If a customer
   qiu_dining: {
     name: "The Qiū Dining",
     noDelivery: true,
+    languageStyle: "english", // English-first replies with a little Malay mixed in
     assistantName: "Hana",
     address: "Geran Mukim 7509, No. Lot 28208, Bukit Tinggi, 28750 Bentong, Pahang",
     phone: "012-945 9455",
@@ -441,10 +442,30 @@ function getRestaurantForIncoming(incomingPhoneNumberId) {
 // ── System prompt builder ───────────────────────────────────
 function buildSystemPrompt(r) {
   const isCatering = r.businessType === "catering";
+  const englishFirst = isCatering || r.languageStyle === "english";
+
+  const spicyRule = englishFirst
+    ? 'Always ask for spicy preference: "Would you like it spicy or not spicy?"'
+    : 'Always ask for spicy preference: "Nak pedas tak, atau tak pedas?"';
+  const noSpicyRule = englishFirst
+    ? 'If customer says "no spicy" or "tak pedas" — acknowledge it clearly: "Okay, noted — not spicy! 👍"'
+    : 'If customer says "no spicy" or "tak pedas" — acknowledge it clearly: "Okay, noted — tak pedas ye! 👍"';
+  const stockEx = englishFirst
+    ? "I can't check stock live, but you can still order and staff will confirm when preparing 😊"
+    : "Stock tak sure real-time, tapi boleh order — nanti staff confirm bila prepare ye";
+  const resDeclineEx = englishFirst
+    ? "Sorry, we can't take reservations through this chat. You're welcome to drop by or contact the restaurant directly 😊"
+    : "Maaf ye, kami tak boleh handle reservation kat chat ni — boleh datang terus atau contact restaurant terus 😊";
+  const resConfirmEx = englishFirst
+    ? "Okay, just to confirm: reservation for [name], [pax] people, [date] at [time]. Is that right?"
+    : "Okay, confirm ye: Reservation untuk [name], [pax] orang, [date] jam [time]. Betul?";
+  const resNotedEx = englishFirst
+    ? "Noted! Our staff will confirm your table and WhatsApp you back 😊"
+    : "Noted! Staff kami akan confirm meja untuk you, nanti kami WhatsApp balik ye 😊";
 
   const askType = r.noDelivery
-    ? 'Always ask: "Dine-in atau takeaway?" (we do not offer delivery)'
-    : 'Always ask: "Dine-in, takeaway, atau delivery?"';
+    ? (englishFirst ? 'Always ask: "Dine-in or takeaway?" (we do not offer delivery)' : 'Always ask: "Dine-in atau takeaway?" (we do not offer delivery)')
+    : (englishFirst ? 'Always ask: "Dine-in, takeaway, or delivery?"' : 'Always ask: "Dine-in, takeaway, atau delivery?"');
   const deliveryRule = r.noDelivery
     ? "We do not offer delivery. If a customer asks for delivery, politely tell them it is dine-in and takeaway only"
     : "For delivery: ask for full address";
@@ -465,11 +486,11 @@ AFTER EVENT DETAILS ARE CONFIRMED:
   [ORDER_CONFIRMED: <summary of the event order in one line>]
 - Example: [ORDER_CONFIRMED: Wedding lunch buffet, 150 pax, 14 Dec 2026 12:00 PM, Shah Alam hall, veg + non-veg, halal, delivery + setup — Ravi]`
     : `ORDERING RULES — VERY IMPORTANT:
-1. Always ask for spicy preference: "Nak pedas tak, atau tak pedas?"
+1. ${spicyRule}
 2. Always confirm the full order back before closing: repeat items + special requests
 3. ${askType}
 4. ${deliveryRule}
-5. If customer says "no spicy" or "tak pedas" — acknowledge it clearly: "Okay, noted — tak pedas ye! 👍"
+5. ${noSpicyRule}
 6. Never skip confirming special requests — this is critical
 
 AFTER ORDER IS CONFIRMED:
@@ -482,7 +503,7 @@ AFTER ORDER IS CONFIRMED:
 - Example: "I can't confirm the date myself, but I'll pass your details to our team and they'll confirm with you"
 - Still follow the ORDERING RULES and end with [ORDER_CONFIRMED: ...] so staff sees exactly what the customer asked for — that's what saves them time, not a phone number`
     : `- Don't redirect the customer to call anyone. Instead, be upfront but keep it simple: say you can't confirm live stock, but take their order anyway so staff can check and confirm it
-- Example: "Stock tak sure real-time, tapi boleh order — nanti staff confirm bila prepare ye"
+- Example: "${stockEx}"
 - Still follow the normal ORDERING RULES below and end with [ORDER_CONFIRMED: ...] so staff sees exactly what was ordered and can quickly check/prepare it — that's what saves them time, not a phone number`;
 
   const cateringDateBlock = `DATE HOLDING / AVAILABILITY:
@@ -507,7 +528,7 @@ ${r.menu}
 
 LANGUAGE & TONE:
 - Reply in the same language the customer uses
-- ${isCatering ? "Default to friendly, clear English with a little Malay mixed in (Manglish)" : "Default to friendly Bahasa Malaysia mixed with English (Manglish)"}
+- ${englishFirst ? "Default to friendly, clear English with a little Malay mixed in (Manglish)" : "Default to friendly Bahasa Malaysia mixed with English (Manglish)"}
 - Keep replies short, warm, and clear — like a friendly staff member texting on their phone, NOT like a formal AI assistant
 - Use 😊 occasionally but don't overdo emojis
 - Write like a real person casually texting: short sentences, natural contractions (takde, kot, jugak, ye)
@@ -534,14 +555,14 @@ ${unknownTail}
 
 ${isCatering ? cateringDateBlock : r.tier === "Starter" ? `TABLE RESERVATIONS — NOT AVAILABLE:
 - This restaurant's plan does not include taking table reservations through this chat
-- If a customer asks to book or reserve a table, politely say you can't take reservations here and suggest they come by directly or contact the restaurant directly, e.g. "Maaf ye, kami tak boleh handle reservation kat chat ni — boleh datang terus atau contact restaurant terus 😊"
+- If a customer asks to book or reserve a table, politely say you can't take reservations here and suggest they come by directly or contact the restaurant directly, e.g. "${resDeclineEx}"
 - Never collect reservation details, never promise or hint that a table is being held, and never output a [RESERVATION_REQUESTED: ...] line
 ` : `TABLE RESERVATION REQUESTS — VERY IMPORTANT:
 - If a customer asks to book/reserve a table, collect: name, date, time, and number of pax (ask one by one or together, whichever flows naturally)
 - Be honest: you cannot guarantee or confirm a table yourself — you can only pass the request to staff
 - Once you have all the details, confirm them back in one message, e.g.:
-  "Okay, confirm ye: Reservation untuk [name], [pax] orang, [date] jam [time]. Betul?"
-- After the customer confirms, reply warmly (e.g. "Noted! Staff kami akan confirm meja untuk you, nanti kami WhatsApp balik ye 😊") and end your message with exactly this line on its own:
+  "${resConfirmEx}"
+- After the customer confirms, reply warmly (e.g. "${resNotedEx}") and end your message with exactly this line on its own:
   [RESERVATION_REQUESTED: <name>, <pax> pax, <date> <time>]
 - Example: [RESERVATION_REQUESTED: Ming, 4 pax, 6 Oct 8:00 PM]
 - Never say the reservation is "confirmed" or "booked" — only that the request has been passed to staff
@@ -610,10 +631,10 @@ async function notifyOwner(type, detail, customerNumber, restaurant) {
   if (type === "ORDER") {
     const isCatering = restaurant.businessType === "catering";
     msg =
-      `🛎️ *${isCatering ? "Order Catering Baru!" : "Pesanan Baru!"}*\n` +
+      `🛎️ *${isCatering ? "Order Catering Baru!" : restaurant.languageStyle === "english" ? "New Order!" : "Pesanan Baru!"}*\n` +
       `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
       `${isCatering ? "Event" : "Order"}: ${detail}\n` +
-      `Masa: ${new Date().toLocaleTimeString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}`;
+      `${restaurant.languageStyle === "english" && !isCatering ? "Time" : "Masa"}: ${new Date().toLocaleTimeString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}`;
   } else if (type === "COMPLAINT") {
     msg =
       `⚠️ *Aduan Customer*\n` +
@@ -808,7 +829,7 @@ app.post("/webhook", async (req, res) => {
         console.error("Error handling Meta message:", err.message);
         await sendWhatsAppMeta(
           from,
-          `Maaf, ada gangguan sekejap. Cuba lagi atau call kami di ${restaurant.phone} 😊`,
+          (restaurant.languageStyle === "english" ? `Sorry, we had a small hiccup. Please try again or call us at ${restaurant.phone} 😊` : `Maaf, ada gangguan sekejap. Cuba lagi atau call kami di ${restaurant.phone} 😊`),
           incomingPhoneNumberId || PHONE_NUMBER_ID,
           restaurant.accessToken || META_ACCESS_TOKEN
         );
@@ -831,7 +852,7 @@ app.post("/webhook", async (req, res) => {
     await sendWhatsApp(from, replyText);
   } catch (err) {
     console.error("Error:", err.message);
-    await sendWhatsApp(from, `Maaf, ada gangguan sekejap. Cuba lagi atau call kami di ${RESTAURANT.phone} 😊`);
+    await sendWhatsApp(from, (RESTAURANT.languageStyle === "english" ? `Sorry, we had a small hiccup. Please try again or call us at ${RESTAURANT.phone} 😊` : `Maaf, ada gangguan sekejap. Cuba lagi atau call kami di ${RESTAURANT.phone} 😊`));
   }
 });
 
