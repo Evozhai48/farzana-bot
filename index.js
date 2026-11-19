@@ -313,10 +313,21 @@ Note: Free refill on Nasi Lemak Rice & Sambal Gajus, dine-in guests only. All pr
     phone: "019-649 2944",
     hours: "Office opens 9:00 AM (staff will confirm exact hours and any public holiday changes)",
     priceRange: "Quoted per event, depending on number of pax and menu",
-    services: "Event catering with 40 years of experience, for celebrations and corporate or family events. Buffet setup available.",
+    services: "Event catering with 40 years of experience, for celebrations and corporate or family events, including Indian and temple weddings (lunch or dinner). Buffet setup available.",
     menu: `
 Known favourite:
 - Keema Chicken Balls
+
+TEMPLE WEDDING / INDIAN WEDDING MENU (lunch or dinner). The customer chooses dishes from each line below:
+- Rice: Biryani Rice / White Rice
+- Gravy and curry: Sambar / Veg Dalcha / Veg Kurma
+- Tahu Sambal / Kicap / Varuval
+- Cabbage Koothu / Parangikai Perattal
+- Brinjal Sweet & Sour / Thimin Raita
+- Inji Puli / Manga Sambal
+- Appalam / Payasam
+- Drinks: Lemon juice / Plain water
+When a customer mentions a temple wedding, Indian wedding or similar, offer this menu, ask whether it is lunch or dinner, and ask which dishes they prefer from each line. Do NOT quote any per-pax price or promo for it, even if the customer has seen one on a flyer or online; say staff will confirm current pricing in the quotation.
 
 Menu and packages are customised for each event. Staff will suggest dishes and prepare a quotation based on the number of pax, the type of event and the customer's budget.
 Do not invent dishes, packages or prices that are not listed here. If a customer asks for specific dishes or prices, say staff will send the menu and quotation.
