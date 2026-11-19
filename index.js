@@ -307,6 +307,7 @@ Note: Free refill on Nasi Lemak Rice & Sambal Gajus, dine-in guests only. All pr
   golden_caterer: {
     name: "Golden Food Caterer",
     businessType: "catering",
+    languageStyle: "english", // English-first replies, English alerts and fallbacks
     assistantName: "Hana",
     address: "26, Jalan TPJ 10, Taman Perindustrian Jaya, 47200 Petaling Jaya, Selangor",
     phone: "019-649 2944",
@@ -406,9 +407,9 @@ Desserts: Cakes of the month (customers can ask the servers or check the counter
   // },
 };
 
-// Demo is pinned to The Qiu Dining. To switch demos again, change this key (or use
+// Demo is pinned to Golden Food Caterer (was qiu_dining). To switch demos again, change this key (or use
 // process.env.DEMO_RESTAURANT_ID || "generic" to go back to the env-var setup).
-const DEMO_ID = "qiu_dining";
+const DEMO_ID = "golden_caterer";
 const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.generic;
 
 
@@ -631,10 +632,10 @@ async function notifyOwner(type, detail, customerNumber, restaurant) {
   if (type === "ORDER") {
     const isCatering = restaurant.businessType === "catering";
     msg =
-      `🛎️ *${isCatering ? "Order Catering Baru!" : restaurant.languageStyle === "english" ? "New Order!" : "Pesanan Baru!"}*\n` +
+      `🛎️ *${restaurant.languageStyle === "english" ? (isCatering ? "New Catering Order!" : "New Order!") : (isCatering ? "Order Catering Baru!" : "Pesanan Baru!")}*\n` +
       `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
       `${isCatering ? "Event" : "Order"}: ${detail}\n` +
-      `${restaurant.languageStyle === "english" && !isCatering ? "Time" : "Masa"}: ${new Date().toLocaleTimeString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}`;
+      `${restaurant.languageStyle === "english" ? "Time" : "Masa"}: ${new Date().toLocaleTimeString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}`;
   } else if (type === "COMPLAINT") {
     msg =
       `⚠️ *Aduan Customer*\n` +
