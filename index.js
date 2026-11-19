@@ -716,19 +716,41 @@ async function logReservationToSheet(reservationSummary, customerNumber, restaur
   }
 }
 
+// ── Detect which language the customer is actually writing in ──
+// Looks only at the customer's own messages. Defaults to English; switches to
+// Malay only if the customer used clear Malay words.
+const MALAY_WORDS = /\b(nak|tak|boleh|saya|sy|aku|kami|korang|awak|kita|dan|dengan|untuk|tolong|terima kasih|tq|makan|minum|pesan|pesanan|tempah|berapa|harga|sila|ye|je|lah|kah|tak nak|ada|apa|macam|mana|bila|pukul|malam|petang|hantar|ambil|bungkus|sedap|banyak|lagi|dah|belum|sekarang|esok|hari ini|boleh tak)\b/i;
+
+function detectCustomerLanguage(customerNumber) {
+  const history = getHistory(customerNumber) || [];
+  const customerMsgs = history
+    .filter((m) => m.role === "user" && typeof m.content === "string")
+    .slice(-6)
+    .map((m) => m.content);
+  const malayHits = customerMsgs.filter((m) => MALAY_WORDS.test(m)).length;
+  return malayHits > customerMsgs.length / 2 ? "ms" : "en";
+}
+
 // ── Schedule follow-up after 30 minutes ───────────────────
 function scheduleFollowUp(customerNumber, orderSummary, restaurant) {
   pendingFollowUps[customerNumber] = { orderedAt: Date.now(), items: orderSummary };
+
+  // Decide language NOW (conversation history may expire before the timer fires)
+  const lang = detectCustomerLanguage(customerNumber);
 
   setTimeout(async () => {
     if (!pendingFollowUps[customerNumber]) return;
     delete pendingFollowUps[customerNumber];
 
-    const followUpMsg =
-      `Hi! Makanan dari ${restaurant.name} tadi okay tak? 😊\n\n` +
-      `Kami harap semua sedap dan mengikut pesanan korang. ` +
-      `Kalau ada apa-apa yang tak kena, bagitahu kami ye — ` +
-      `kami nak pastikan korang puas hati! 🙏`;
+    const followUpMsg = lang === "ms"
+      ? `Hi! Makanan dari ${restaurant.name} tadi okay tak? 😊\n\n` +
+        `Kami harap semua sedap dan mengikut pesanan korang. ` +
+        `Kalau ada apa-apa yang tak kena, bagitahu kami ye — ` +
+        `kami nak pastikan korang puas hati! 🙏`
+      : `Hi! How was your meal from ${restaurant.name}? 😊\n\n` +
+        `We hope everything was delicious and exactly as you ordered. ` +
+        `If anything wasn't right, just let us know — ` +
+        `we want to make sure you're happy! 🙏`;
 
     try {
       // NOTE: this used to call the old Twilio-based sendWhatsApp(), which
