@@ -298,6 +298,51 @@ Note: Free refill on Nasi Lemak Rice & Sambal Gajus, dine-in guests only. All pr
     `.trim(),
   },
 
+  // Demo for Secret Of Louisiana At The Lake (SS7, Petaling Jaya).
+  // Details and dish names come from their Google Maps listing and the eat-all-you-can
+  // pasta poster. No prices are listed on purpose (the poster may be out of date), so the
+  // bot tells customers staff will confirm prices. Replace `menu` once the owner shares
+  // the real menu. Demo config: no tier set, so reservations are allowed.
+  secret_of_louisiana: {
+    name: "Secret Of Louisiana At The Lake",
+    noDelivery: true,
+    languageStyle: "english",
+    assistantName: "Hana",
+    address: "D-01, 01, Jalan SS 7/13a, SS 7, 47301 Petaling Jaya, Selangor",
+    phone: "014-698 0452",
+    hours: "Staff will confirm opening hours (eat-all-you-can pasta is served 11:30 AM to 3:00 PM)",
+    priceRange: "RM 20 – RM 40 per person",
+    services: "Dine-in and takeaway only (no delivery). Lakeside American Cajun restaurant. Table reservations are taken through WhatsApp.",
+    menu: `
+Popular dishes:
+- Fisherman Seafood Aglio Olio
+- Seafood Gumbo
+- Louisiana's Style Chicken Chop
+- Fresh & Wild Mushroom Soup
+- Fiesta Fillet Mignon
+- French Quarter Escargot
+- Clam & Mussel Risotto
+- Jerky Jerk Chicken
+- Mango & Smoked Duck Salad
+- Fiery Soft Shell Crab Pasta
+- Sweet Corn & Crab Soup
+- Chip & Salsa
+- Buffalo Wings
+- Smoked Salmon Pizza
+- Roasted Chili Smoked Duck Pizza
+- Smoked Duck Chili Spaghetti
+- Creole Grilled Seafood Platter
+- Garlic Toast Bread
+
+Eat-All-You-Can Pasta (11:30 AM to 3:00 PM). Choose from:
+Mexican Aglio Olio, Chicken Smoked Sausage, Beef Bolognaise, Spinach Tortellini, Chicken Carbonara, Creamy Pesto Fish, Cajun Garlic Shrimp, Vongole Clam, Pasta Chicken Meatball, Chicken Gravy Lasagna, Chili Smoked Duck, Penne Baked Turkey Ham, Chicken Bolognaise, Broccoli Fettuccine, Macaroni & Cheese (new).
+Free flow: ice lemon tea, soup of the day, garlic toast, garden green salad, brewed coffee and tea, potato salad, and one cup of ice cream.
+Buffet rules: strictly no sharing; children are priced by height; a surcharge applies on weekends and public holidays; wastage is charged by weight; prices are subject to SST and service charge.
+
+Prices are NOT listed here. Do not quote any price. If asked, say the team will confirm current prices.
+    `.trim(),
+  },
+
   // Catering demo for Golden Food Caterer (Taman Perindustrian Jaya, PJ).
   // businessType: "catering" switches the bot from meal ordering to EVENT ordering:
   // no spicy/dine-in questions, collects event date/pax/venue/dietary needs, never
@@ -420,7 +465,7 @@ Desserts: Cakes of the month (customers can ask the servers or check the counter
 
 // Demo is pinned to Golden Food Caterer (was qiu_dining). To switch demos again, change this key (or use
 // process.env.DEMO_RESTAURANT_ID || "generic" to go back to the env-var setup).
-const DEMO_ID = "golden_caterer";
+const DEMO_ID = "secret_of_louisiana";
 const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.generic;
 
 
