@@ -536,6 +536,8 @@ console.log(
 const DEMO_SENDER_ROUTES = {
   "60146980452": "secret_of_louisiana", // Secret Of Louisiana At The Lake (manager)
   "60183814255": "nicks_grill",         // Nick's Grill & Kitchen (owner)
+  "60196492944": "golden_caterer",      // Golden Food Caterer (Mr. Nuresh)
+  "60129459455": "qiu_dining",          // The Qiu Dining (owner)
 };
 
 function getDemoRestaurantForSender(from) {
