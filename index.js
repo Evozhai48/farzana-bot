@@ -343,6 +343,47 @@ Prices are NOT listed here. Do not quote any price. If asked, say the team will 
     `.trim(),
   },
 
+  // Demo for Nick's Grill & Kitchen (Putra Heights, Subang Jaya).
+  // Address, phone, hours, menu and prices come from their Google Maps listing (menu
+  // images, Jul 2026) and their lunch / office-delivery posters. Group reservation
+  // requests are enabled for the demo (no tier set); staff confirm every booking.
+  nicks_grill: {
+    name: "Nick's Grill & Kitchen",
+    languageStyle: "english",
+    assistantName: "Hana",
+    address: "17G, Jalan Putra Mahkota 7/6b, Putra Heights, 47650 Subang Jaya, Selangor",
+    phone: "018-381 4255",
+    hours: "Wednesday to Monday, lunch 12:00 PM to 3:00 PM and dinner 5:00 PM to 10:00 PM (Saturday dinner until 12:00 AM). Closed on Tuesdays.",
+    priceRange: "RM 20 – RM 40 per person",
+    services: "Dine-in and takeaway. Free office lunch delivery in Putra Heights only, for 5 orders and above (pre-order for your team). Serves both vegetarian and non-vegetarian food. Group and birthday reservations can be requested and staff will confirm.",
+    menu: `
+LUNCH SETS (Wednesday to Monday, 12:00 PM to 2:30 PM, free drink with every set):
+- Local Favourites RM12.90: Nasi Goreng Ayam / Vegetarian Fried Rice / Spicy Masala Sausages & Egg
+- Pasta Favourites RM16.90 (veg or non-veg): Aglio e Olio / Spicy Arrabbiata / Creamy Tomato Pasta
+- Chicken Perattal RM18.90 (with rice or toasties)
+- Grilled Chicken Chop RM23.90 (original or BBQ)
+- Mutton Masala Fried Rice RM23.90 (veg or non-veg)
+Lunch set prices are nett, inclusive of 10% service charge, no SST.
+FREE OFFICE LUNCH DELIVERY: Putra Heights only, for 5 orders and above, pre-order for your team, free drink with every set. Delivery is ONLY for this. Otherwise it is dine-in or takeaway.
+
+STARTERS: S1 Spicy Anchovies with Onions RM15.90; S2 Spicy Masala Sausage with Eggs RM13.90; S3 Chicken 65 RM15.90; S4 Spicy Chicken Perattal with Toasties RM21.90; S5 Spicy Mutton Perattal with Toasties RM27.90; S6 Chicken Popcorn (spicy or original) RM15.90; S7 Chicken Nuggets RM12.90; S8 French Fries RM9.00; S9 Fried Enoki Mushroom (spicy or original) RM12.90; S10 Fish Fingers RM20.90; S11 Chicken Wings RM15.90
+
+CHOPS (choice of blackpepper or mushroom sauce): C1 Crispy Chicken Chop RM25.90; C2 Grilled Chicken Chop (original or BBQ) RM27.90; C3 Grilled Lamb Chop RM33.90
+BURGERS: B1 Crispy Chicken Burger (original or BBQ) RM25.90; B2 Grilled Chicken Burger RM24.90; B3 Fish and Chips RM30.90
+
+INDIAN MASALA MOSAIC: I1 Chicken Masala Fried Rice RM21.90; I2 Mutton Masala Fried Rice RM26.90; I3 Chicken Satti Soru (claypot) RM22.90; I4 Mutton Satti Soru (claypot) RM26.90; I5 Spicy Chicken Perattal with Rice RM20.90; I6 Spicy Mutton Perattal with Rice RM27.90
+
+PASTA: Q1 Chicken Alfredo RM21.90; Q2 Chicken Spicy Arrabbiata RM19.90; Q3 Chicken Creamy Tomato RM16.00; Q4 Chicken Buttermilk RM18.90; Q5 Chicken Creamy Salted Egg RM19.90; Q6 Chicken Aglio e Olio RM18.00
+PIZZA: P1 Hawaiian Chicken RM23.90; P2 Mutton Varuval RM26.90; P3 Chicken BBQ RM24.90; V6 Margherita (vegetarian) RM21.90
+
+VEGETARIAN: V1 Vege Alfredo Pasta RM19.90; V2 Vege Aglio e Olio RM17.00; V3 Vege Buttermilk Pasta RM19.90; V4 Vege Creamy Salted Egg Pasta RM19.90; V5 Vege Spicy Arrabbiata RM19.90; V6 Margherita Pizza RM21.90; V7 Vege Creamy Salted Egg with Rice RM19.90; V8 Vege Chicken Buttermilk with Rice RM19.90; V9 Vegetarian Fried Rice RM13.00; V10 Vege Mutton Masala Fried Rice RM22.90; V11 Vege Chicken Masala Fried Rice RM22.90; V12 Spicy Vege Chicken Perattal with Toasties or Rice RM21.00; V13 Spicy Vege Mutton Perattal with Toasties or Rice RM25.00; V14 Vege Burger RM16.00
+
+KID'S MEAL RM9.90 (served with a drink, Yakult or chocolate milk): K1 Mac & Cheese; K2 Alfredo Pasta; K3 Creamy Tomato Pasta; K4 Nuggets with Fries; K5 Sausages with Fries
+
+BEVERAGES: W1 Honey Lemon RM5.90; W2 Lemon Juice RM3.00; W3 Ice Water RM1.00; W4 Warm Water RM0.50; W5 Infused Water RM2.00; Fresh Juices RM14.90 each (J1 Apple, J2 Orange, J3 Watermelon); Milkshakes RM16.90 each (M1 Vanilla, M2 Strawberry, M3 Chocolate, M4 Oreo)
+    `.trim(),
+  },
+
   // Catering demo for Golden Food Caterer (Taman Perindustrian Jaya, PJ).
   // businessType: "catering" switches the bot from meal ordering to EVENT ordering:
   // no spicy/dine-in questions, collects event date/pax/venue/dietary needs, never
@@ -465,7 +506,7 @@ Desserts: Cakes of the month (customers can ask the servers or check the counter
 
 // Demo is pinned to Golden Food Caterer (was qiu_dining). To switch demos again, change this key (or use
 // process.env.DEMO_RESTAURANT_ID || "generic" to go back to the env-var setup).
-const DEMO_ID = "secret_of_louisiana";
+const DEMO_ID = "nicks_grill";
 const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.generic;
 
 
@@ -487,6 +528,20 @@ console.log(
     ? `📡 Routing ${liveClientCount} live client number(s) by phone_number_id.`
     : `📡 No live client numbers configured yet — every message uses the fallback restaurant above.`
 );
+
+// ── Demo routing by sender ─────────────────────────────────
+// The demo number is shared, so a prospect who is trying it must not see another
+// prospect's restaurant. Map a prospect's WhatsApp number (digits only, with country
+// code) to the restaurant key they should see. Anyone not listed gets DEMO_ID.
+const DEMO_SENDER_ROUTES = {
+  "60146980452": "secret_of_louisiana", // Secret Of Louisiana At The Lake (manager)
+  "60183814255": "nicks_grill",         // Nick's Grill & Kitchen (owner)
+};
+
+function getDemoRestaurantForSender(from) {
+  const key = DEMO_SENDER_ROUTES[String(from || "").replace(/\D/g, "")];
+  return key && RESTAURANTS[key] ? RESTAURANTS[key] : null;
+}
 
 function getRestaurantForIncoming(incomingPhoneNumberId) {
   if (incomingPhoneNumberId && PHONE_ID_TO_RESTAURANT[incomingPhoneNumberId]) {
@@ -893,12 +948,15 @@ app.post("/webhook", async (req, res) => {
     // the matching client — every reply, notification, order log, and
     // follow-up for this message uses THIS restaurant, not the global one.
     const incomingPhoneNumberId = value?.metadata?.phone_number_id;
-    const restaurant = getRestaurantForIncoming(incomingPhoneNumberId);
+    const incomingRestaurant = getRestaurantForIncoming(incomingPhoneNumberId);
 
     for (const message of messages) {
       const from = message.from;
       const incomingMsg = message.text?.body;
       if (!from || !incomingMsg) continue;
+
+      // Shared demo number only: show this sender their own restaurant if they are mapped.
+      const restaurant = (incomingRestaurant === RESTAURANT && getDemoRestaurantForSender(from)) || incomingRestaurant;
 
       console.log(`[IN-META] (${restaurant.name}) ${from}: ${incomingMsg}`);
       try {
