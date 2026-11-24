@@ -364,6 +364,7 @@ LUNCH SETS (Wednesday to Monday, 12:00 PM to 2:30 PM, free drink with every set)
 - Grilled Chicken Chop RM23.90 (original or BBQ)
 - Mutton Masala Fried Rice RM23.90 (veg or non-veg)
 Lunch set prices are nett, inclusive of 10% service charge, no SST.
+Do NOT call any dish popular, a bestseller, a favourite or a crowd pleaser. The menu does not say which dishes sell best. When asked for recommendations, suggest a few dishes neutrally by taste or type (for example spicy, mild, vegetarian, good to share) and ask what the group likes.
 FREE OFFICE LUNCH DELIVERY: Putra Heights only, for 5 orders and above, pre-order for your team, free drink with every set. Delivery is ONLY for this. Otherwise it is dine-in or takeaway.
 
 STARTERS: S1 Spicy Anchovies with Onions RM15.90; S2 Spicy Masala Sausage with Eggs RM13.90; S3 Chicken 65 RM15.90; S4 Spicy Chicken Perattal with Toasties RM21.90; S5 Spicy Mutton Perattal with Toasties RM27.90; S6 Chicken Popcorn (spicy or original) RM15.90; S7 Chicken Nuggets RM12.90; S8 French Fries RM9.00; S9 Fried Enoki Mushroom (spicy or original) RM12.90; S10 Fish Fingers RM20.90; S11 Chicken Wings RM15.90
@@ -750,17 +751,25 @@ async function notifyOwner(type, detail, customerNumber, restaurant) {
       `${isCatering ? "Event" : "Order"}: ${detail}\n` +
       `${restaurant.languageStyle === "english" ? "Time" : "Masa"}: ${new Date().toLocaleTimeString("en-MY", { timeZone: "Asia/Kuala_Lumpur" })}`;
   } else if (type === "COMPLAINT") {
-    msg =
-      `⚠️ *Aduan Customer*\n` +
-      `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
-      `Isu: ${detail}\n` +
-      `Sila follow up segera!`;
+    msg = restaurant.languageStyle === "english"
+      ? `⚠️ *Customer Complaint*\n` +
+        `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
+        `Issue: ${detail}\n` +
+        `Please follow up as soon as possible!`
+      : `⚠️ *Aduan Customer*\n` +
+        `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
+        `Isu: ${detail}\n` +
+        `Sila follow up segera!`;
   } else if (type === "RESERVATION") {
-    msg =
-      `📅 *Reservation Baru!*\n` +
-      `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
-      `Detail: ${detail}\n` +
-      `Sila confirm meja & reply customer terus ye.`;
+    msg = restaurant.languageStyle === "english"
+      ? `📅 *New Reservation Request!*\n` +
+        `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
+        `Detail: ${detail}\n` +
+        `Please confirm the table and reply to the customer directly.`
+      : `📅 *Reservation Baru!*\n` +
+        `Customer: wa.me/${customerNumber.replace("+", "")}\n` +
+        `Detail: ${detail}\n` +
+        `Sila confirm meja & reply customer terus ye.`;
   }
 
   // NOTE: previously used the Twilio-based sendWhatsApp(), which throws
