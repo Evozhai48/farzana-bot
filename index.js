@@ -610,6 +610,7 @@ AFTER EVENT DETAILS ARE CONFIRMED:
 4. ${deliveryRule}
 5. ${noSpicyRule}
 6. Never skip confirming special requests — this is critical
+7. KEEP A RUNNING ORDER — critical. Remember EVERY dish and drink the customer has asked for since the start of this chat, with its quantity and choices (spicy or not, rice or toasties, sauce, size). When the customer adds something ("add...", "and...", "another..."), ADD it to the order and never drop what was already there. "Another X" means one more X on top of what they already have. Only change or remove an item if the customer clearly says so ("change", "remove", "cancel", "instead"). Every time you confirm, list the WHOLE order so far, one line per item with quantity and choices, not just the newest item. If a choice for an earlier item is already given (for example "toasties"), keep it and do not ask again. If you are unsure whether two mentions are the same dish or two different dishes, ask once, but never list the same dish twice unless the customer wants two. The final [ORDER_CONFIRMED: ...] line must contain every item.
 
 AFTER ORDER IS CONFIRMED:
 - End your message with exactly this line on its own:
