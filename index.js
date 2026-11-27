@@ -305,9 +305,9 @@ Note: Free refill on Nasi Lemak Rice & Sambal Gajus, dine-in guests only. All pr
   // the real menu. Demo config: no tier set, so reservations are allowed.
   secret_of_louisiana: {
     name: "Secret Of Louisiana At The Lake",
-    // Order, reservation and complaint alerts for this demo go to this number
-    // (+60 17-979 1132) so Ethan can screen-record the demo end to end.
-    alertNumbers: ["60179791132"],
+    // Order, reservation and complaint alerts for this demo go to Ethan's own number
+    // (+60 14-325 0453) while he screen-records the demo from +60 17-979 1132.
+    alertNumbers: ["60143250453"],
     noDelivery: true,
     languageStyle: "english",
     assistantName: "Hana",
@@ -541,6 +541,7 @@ console.log(
 // code) to the restaurant key they should see. Anyone not listed gets DEMO_ID.
 const DEMO_SENDER_ROUTES = {
   "60146980452": "secret_of_louisiana", // Secret Of Louisiana At The Lake (manager)
+  "60179791132": "secret_of_louisiana", // Ethan's second number, used to record the Louisiana demo
   "60183814255": "nicks_grill",         // Nick's Grill & Kitchen (restaurant line)
   "60146458225": "nicks_grill",         // Nick's Grill & Kitchen (Pravinah, owner)
   "60196492944": "golden_caterer",      // Golden Food Caterer (Mr. Nuresh)
