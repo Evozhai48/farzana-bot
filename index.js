@@ -306,8 +306,8 @@ Note: Free refill on Nasi Lemak Rice & Sambal Gajus, dine-in guests only. All pr
   secret_of_louisiana: {
     name: "Secret Of Louisiana At The Lake",
     // Order, reservation and complaint alerts for this demo go to this number
-    // (+60 11-6388 1828) so Ethan can screen-record the demo end to end.
-    alertNumbers: ["601163881828"],
+    // (+60 17-979 1132) so Ethan can screen-record the demo end to end.
+    alertNumbers: ["60179791132"],
     noDelivery: true,
     languageStyle: "english",
     assistantName: "Hana",
