@@ -305,6 +305,9 @@ Note: Free refill on Nasi Lemak Rice & Sambal Gajus, dine-in guests only. All pr
   // the real menu. Demo config: no tier set, so reservations are allowed.
   secret_of_louisiana: {
     name: "Secret Of Louisiana At The Lake",
+    // Order, reservation and complaint alerts for this demo go to this number
+    // (+60 11-6388 1828) so Ethan can screen-record the demo end to end.
+    alertNumbers: ["601163881828"],
     noDelivery: true,
     languageStyle: "english",
     assistantName: "Hana",
@@ -509,7 +512,7 @@ Desserts: Cakes of the month (customers can ask the servers or check the counter
 
 // Demo is pinned to Golden Food Caterer (was qiu_dining). To switch demos again, change this key (or use
 // process.env.DEMO_RESTAURANT_ID || "generic" to go back to the env-var setup).
-const DEMO_ID = "nicks_grill";
+const DEMO_ID = "secret_of_louisiana";
 const RESTAURANT = RESTAURANTS[DEMO_ID] || RESTAURANTS.generic;
 
 
